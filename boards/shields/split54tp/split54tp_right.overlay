@@ -1,0 +1,38 @@
+/*
+ * split54tp 右半身 (セントラル)
+ * USB/BLEでホストに接続する側。
+ */
+
+#include "split54tp.dtsi"
+
+/* 右半身は transform の列 7-13 を使用 */
+&default_transform {
+    col-offset = <7>;
+};
+
+&right_encoder {
+    status = "okay";
+
+    /*
+     * ⚠ 右基板は ENC1 を物理的に180度回転して実装している。
+     *   実機で回転方向が左と逆だった場合は、下の2行のコメントを外して
+     *   a/b を入れ替える (ファームウェアだけで直せる)。
+     *
+     * a-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+     * b-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+     */
+};
+
+/*
+ * ---- 右側ポインティングスティック (将来) ----
+ * 右はセントラルなので、input-split を介さず listener に直結する。
+ *
+ *   &i2c0 {
+ *       lpps: pointing_device@57 {
+ *           compatible = "lpps";
+ *           reg = <0x57>;
+ *           irq-gpios = <&gpio0 9 GPIO_PULL_UP>;
+ *       };
+ *   };
+ *   &lpps_listener { status = "okay"; };
+ */

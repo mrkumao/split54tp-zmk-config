@@ -1,0 +1,8 @@
+# ZMK 公式の再利用可能ワークフローを呼ぶだけの薄いラッパー。
+# build.yaml のマトリクスに従って uf2 を生成し、Artifacts に添付する。
+# https://zmk.dev/docs/user-setup
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main

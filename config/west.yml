@@ -1,0 +1,40 @@
+# west manifest
+#
+# ★ バージョン固定について
+#   ZMK公式は revision の固定を強く推奨している。
+#   https://zmk.dev/blog/2025/06/20/pinned-zmk
+#
+#   いまは main を追っている。理由:
+#     - main は Zephyr 4.1 / HWMv2 へ移行済み (2025-12)
+#     - 最新リリース v0.3 は移行前で、ボード名が seeeduino_xiao_ble のまま
+#     - 今後のコミュニティモジュールは main 系を前提にすると見込まれる
+#
+#   ⚠ 最初のビルドが緑になったら、その時点のコミットSHAに固定すること:
+#       revision: <40桁のSHA>
+#     main のまま放置すると、ある日突然ビルドが壊れる。
+#
+# ★ トラックポイントについて
+#   PS/2版ドライバ (infused-kim) は ZMK本体をフォークに差し替える必要があり、
+#   さらにペリフェラル側では動作しないため、いったん外している。
+#   低消費電力ポインティングスティック (I2C) に載せ替える方針:
+#     https://github.com/sekigon-gonnoc/zmk-driver-lpps
+#   導入時は remotes と projects に以下を追加する。
+#
+#     remotes:
+#       - name: sekigon-gonnoc
+#         url-base: https://github.com/sekigon-gonnoc
+#     projects:
+#       - name: zmk-driver-lpps
+#         remote: sekigon-gonnoc
+#         revision: master
+manifest:
+  remotes:
+    - name: zmkfirmware
+      url-base: https://github.com/zmkfirmware
+  projects:
+    - name: zmk
+      remote: zmkfirmware
+      revision: main
+      import: app/west.yml
+  self:
+    path: config

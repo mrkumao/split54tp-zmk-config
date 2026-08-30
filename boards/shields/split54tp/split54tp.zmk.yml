@@ -1,0 +1,12 @@
+file_format: "1"
+id: split54tp
+name: split54tp
+type: shield
+url: https://github.com/
+requires: [xiao_ble]
+features:
+  - keys
+  - encoder
+siblings:
+  - split54tp_left
+  - split54tp_right

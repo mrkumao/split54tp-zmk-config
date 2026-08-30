@@ -1,0 +1,7 @@
+# この zmk-config 自体を Zephyr モジュールとして認識させる定義。
+# これが無いと boards/shields/ 配下の自作シールドが見つからない。
+# https://zmk.dev/docs/hardware-integration/new-shield
+build:
+  settings:
+    board_root: .
+    dts_root: .

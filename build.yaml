@@ -1,0 +1,20 @@
+# GitHub Actions (zmk-config) 用ビルドマトリクス
+#
+# ボード名は 2025-12 の Zephyr 4.1 / HWMv2 移行で変更された。
+#   旧: seeeduino_xiao_ble → 新: xiao_ble//zmk
+#   https://zmk.dev/blog/2025/12/09/zephyr-4-1
+#
+# ★ ZMK Studio (再ビルドなしでキーマップを変更する仕組み)
+#   公式の指示どおり、snippet と CONFIG_ZMK_STUDIO は
+#   「セントラル側のみ」に付ける。本設計のセントラルは【右】。
+#   https://zmk.dev/docs/features/studio
+---
+include:
+  - board: xiao_ble//zmk
+    shield: split54tp_right       # セントラル (USB/BLEでホストに接続)
+    snippet: studio-rpc-usb-uart
+    cmake-args: -DCONFIG_ZMK_STUDIO=y
+  - board: xiao_ble//zmk
+    shield: split54tp_left        # ペリフェラル
+  - board: xiao_ble//zmk
+    shield: settings_reset        # ペアリング情報の消去用

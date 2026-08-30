@@ -1,0 +1,129 @@
+/*
+ * split54tp デフォルトキーマップ (US配列 / 手書きレイアウト図準拠)
+ * 54キー + ホイールエンコーダのプッシュ2 = 56ポジション
+ *
+ *  ┌─────┬─────┬─────┬─────┬─────┬─────┐   ┌─────┬─────┬─────┬─────┬─────┬─────┐
+ *  │ ESC │  1  │  2  │  3  │  4  │  5  │   │  6  │  7  │  8  │  9  │  0  │ DEL │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┼─────┼─────┤
+ *  │ TAB │  Q  │  W  │  E  │  R  │  T  │   │  Y  │  U  │  I  │  O  │  P  │ BS  │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ◉ ├─────┼─────┼─────┼─────┼─────┼─────┤  ◉=スティック
+ *  │CTRL │  A  │  S  │  D  │  F  │  G  │   │  H  │  J  │  K  │  L  │  ;  │ ENT │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ≡ ├─────┼─────┼─────┼─────┼─────┼─────┤  ≡=スクロールホイール
+ *  │SHIFT│  Z  │  X  │  C  │  V  │  B  │   │  N  │  M  │  ,  │  .  │  /  │SHIFT│
+ *  └─────┴─────┴─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┴─────┴─────┘
+ *                    │GUI  │ L1  │SPC  │   │SPC  │ L2  │ALT  │
+ *                    └─────┴─────┴─────┘   └─────┴─────┴─────┘
+ *
+ * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
+ *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
+ *   変更するには、まず raise レイヤー(&mo 2)の左上キーで &studio_unlock を押してください。
+ *
+ *   ⚠ 一度 Studio でキーマップを保存すると、このファイルへの変更は反映されなくなります。
+ *     戻すには Studio の "Restore Stock Settings" を実行してください。
+ *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
+ *
+ * エンコーダは横軸のスクロールホイール(マウスホイール方式)。
+ * ※ エンコーダへの behavior 割当は ZMK Studio では未対応のため、ここで定義します。
+ * 回転はマウスのホイールスクロールとして送出する (&msc SCRL_UP / SCRL_DOWN)。
+ * スクロール方向が逆の場合は enc_scroll の bindings を入れ替える。
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <dt-bindings/zmk/outputs.h>
+
+/ {
+    macros {
+        // ZMKに「接続先ごとのキーマップ」機能は無い(レイヤーは全プロファイル共通)。
+        // プロファイル切替と同時にベースレイヤーも切り替えることで等価の運用ができる。
+        //   例: PC(Windows)=プロファイル0+レイヤー0 / Mac=プロファイル1+レイヤー3
+        // 使う場合は default_layer をコピーしてMac用レイヤー(3)を作り、下のコメントを外す。
+        bt_pc: bt_pc {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL 0>, <&to 0>;
+        };
+        bt_mac: bt_mac {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            // Mac用ベースレイヤーを追加したら <&to 3> に変更する
+            bindings = <&bt BT_SEL 1>, <&to 0>;
+        };
+    };
+
+    behaviors {
+        // ホイール回転 → マウススクロール
+        // 公式: https://zmk.dev/docs/keymaps/behaviors/sensor-rotate
+        enc_scroll: enc_scroll {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc SCRL_DOWN>, <&msc SCRL_UP>;
+        };
+
+        // 参考: キー送出にしたい場合はこちらを sensor-bindings に使う
+        rot_kp: rot_kp {
+            compatible = "zmk,behavior-sensor-rotate-var";
+            #sensor-binding-cells = <2>;
+            bindings = <&kp>, <&kp>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            display-name = "Base";
+            bindings = <
+&kp ESC    &kp N1  &kp N2  &kp N3  &kp N4  &kp N5        &kp N6  &kp N7  &kp N8     &kp N9   &kp N0    &kp DEL
+&kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T         &kp Y   &kp U   &kp I      &kp O    &kp P     &kp BSPC
+&kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
+&kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
+                           &kp LGUI  &mo 1  &kp SPACE     &kp SPACE  &mo 2  &kp RALT
+&mkp MCLK                                                                     &mkp MCLK
+            >;
+            sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        lower_layer {
+            display-name = "Fn/Nav";
+            bindings = <
+&kp GRAVE  &kp F1     &kp F2     &kp F3      &kp F4      &kp F5         &kp F6     &kp F7    &kp F8   &kp F9     &kp F10   &kp F11
+&trans     &kp HOME   &kp UP     &kp END     &kp PG_UP   &kp PSCRN      &trans     &trans    &trans   &trans     &trans    &kp F12
+&trans     &kp LEFT   &kp DOWN   &kp RIGHT   &kp PG_DN   &kp INS        &kp LEFT   &kp DOWN  &kp UP   &kp RIGHT  &kp HOME  &kp END
+&trans     &trans     &trans     &trans      &trans      &trans         &trans     &trans    &trans   &trans     &trans    &trans
+                                 &trans      &trans      &trans         &trans     &trans    &trans
+&mkp MCLK                                                                                    &mkp MCLK
+            >;
+            // 下位レイヤーではホイールを音量に
+            sensor-bindings = <&rot_kp C_VOL_UP C_VOL_DN &rot_kp C_VOL_UP C_VOL_DN>;
+        };
+
+        raise_layer {
+            display-name = "Sym/BT";
+            bindings = <
+&studio_unlock  &kp EXCL      &kp AT        &kp HASH      &kp DLLR      &kp PRCNT      &kp CARET  &kp AMPS   &kp STAR   &kp LPAR  &kp RPAR  &trans
+&trans  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_CLR     &kp LBKT   &kp RBKT   &kp LBRC   &kp RBRC  &kp BSLH  &kp PIPE
+&trans  &trans        &trans        &trans        &trans        &trans         &kp MINUS  &kp EQUAL  &kp UNDER  &kp PLUS  &kp SQT   &kp DQT
+&trans  &trans        &trans        &trans        &trans        &trans         &trans     &trans     &trans     &trans    &trans    &trans
+                                    &trans        &trans        &trans         &trans     &trans     &trans
+&mkp MCLK                                                                                            &mkp MCLK
+            >;
+            // 上位レイヤーではホイールを水平スクロールに
+            sensor-bindings = <&rot_kp PG_DN PG_UP &rot_kp PG_DN PG_UP>;
+        };
+
+        /*
+         * ZMK Studio 用の予約レイヤー。
+         * 通常ビルドでは無視され、Studio 有効ビルドでのみ使えるようになる。
+         * devicetree で確保した数を超えるレイヤーは Studio では追加できないため、
+         * あらかじめ余分に用意しておく。
+         * https://zmk.dev/docs/features/studio#including-extra-layers
+         */
+        extra1 { status = "reserved"; };
+        extra2 { status = "reserved"; };
+        extra3 { status = "reserved"; };
+        extra4 { status = "reserved"; };
+    };
+};

@@ -1,0 +1,216 @@
+/*
+ * split54tp デフォルトキーマップ (US配列 / 手書きレイアウト図準拠)
+ * 54キー + ホイールエンコーダのプッシュ2 = 56ポジション
+ *
+ *  ┌─────┬─────┬─────┬─────┬─────┬─────┐   ┌─────┬─────┬─────┬─────┬─────┬─────┐
+ *  │ ESC │  1  │  2  │  3  │  4  │  5  │   │  6  │  7  │  8  │  9  │  0  │ DEL │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┼─────┼─────┤
+ *  │ TAB │  Q  │  W  │  E  │  R  │  T  │   │  Y  │  U  │  I  │  O  │  P  │ BS  │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ◉ ├─────┼─────┼─────┼─────┼─────┼─────┤  ◉=スティック
+ *  │CTRL │  A  │  S  │  D  │  F  │  G  │   │  H  │  J  │  K  │  L  │  ;  │ ENT │
+ *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ≡ ├─────┼─────┼─────┼─────┼─────┼─────┤  ≡=スクロールホイール
+ *  │SHIFT│  Z  │  X  │  C  │  V  │  B  │   │  N  │  M  │  ,  │  .  │  /  │SHIFT│
+ *  └─────┴─────┴─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┴─────┴─────┘
+ *                    │GUI  │ L1  │SPC  │   │SPC  │ L2  │ALT  │
+ *                    └─────┴─────┴─────┘   └─────┴─────┴─────┘
+ *
+ * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
+ *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
+ *   変更するには、まず raise レイヤー(&mo 2)の左上キーで &studio_unlock を押してください。
+ *
+ *   ⚠ 一度 Studio でキーマップを保存すると、このファイルへの変更は反映されなくなります。
+ *     戻すには Studio の "Restore Stock Settings" を実行してください。
+ *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
+ *
+ * エンコーダは横軸のスクロールホイール(マウスホイール方式)。
+ * ※ エンコーダへの behavior 割当は ZMK Studio では未対応のため、ここで定義します。
+ * 回転はマウスのホイールスクロールとして送出する (&msc SCRL_UP / SCRL_DOWN)。
+ * スクロール方向が逆の場合は enc_scroll の bindings を入れ替える。
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/modifiers.h>
+
+/*
+ * ---- レイヤー構成 ----
+ *  ZMKには「BLEプロファイルごとのキーマップ」機能は存在しない。
+ *  レイヤーは全プロファイル共通なので、"プロファイル切替と同時にOS用の
+ *  ベースレイヤーへ移動する" マクロを組んで等価の運用を実現する。
+ *
+ *  &to は「デフォルトレイヤー以外を全て無効化」する仕様なので、
+ *  OS別レイヤーは差分(修飾キーの入れ替え)だけを書き、
+ *  残りは &trans にしてレイヤー0を透過させればよい。
+ *  https://zmk.dev/docs/keymaps/behaviors/layers
+ */
+#define BASE  0   // Windows / 会社PC (デフォルト)
+#define LOWER 1
+#define RAISE 2
+#define MAC   3   // Mac      : CTRL <-> GUI(CMD) を入れ替え
+#define IPAD  4   // iPad     : Mac と同じ配列 (将来分けられるよう別レイヤーにしてある)
+
+/ {
+    behaviors {
+        /*
+         * ---- BLEプロファイル切替 (CTRL + 数字キー) ----
+         * ベースの 1/2/3/4 の位置に置く。レイヤー(L1/L2)上で
+         *   そのまま押す        → 記号 ( - = [ ] )
+         *   CTRLを押しながら    → BLEプロファイル 1〜4 に切替/ペアリング
+         * keep-mods は既定の0なので、CTRLはホストへ送出されない。
+         * https://zmk.dev/docs/keymaps/behaviors/mod-morph
+         *
+         * ZMKは既定で5プロファイルを持つが、ここでは4つだけを使う。
+         * https://zmk.dev/docs/features/bluetooth#profiles
+         */
+        /*
+         * プロファイル切替 = BLEプロファイル選択 + OS用ベースレイヤーへ移動
+         *   1: Mac  / 2: Windows(会社PC) / 3: iPad / 4: 予備(Windows配列)
+         */
+        prof1_mac: prof1_mac {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL 0>, <&to MAC>;
+        };
+        prof2_win: prof2_win {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL 1>, <&to BASE>;
+        };
+        prof3_ipad: prof3_ipad {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL 2>, <&to IPAD>;
+        };
+        prof4_spare: prof4_spare {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL 3>, <&to BASE>;
+        };
+
+        bt_1: bt_1 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp MINUS>, <&prof1_mac>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
+        };
+        bt_2: bt_2 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp EQUAL>, <&prof2_win>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
+        };
+        bt_3: bt_3 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp LBKT>, <&prof3_ipad>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
+        };
+        bt_4: bt_4 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp RBKT>, <&prof4_spare>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
+        };
+
+        // ホイール回転 → マウススクロール
+        // 公式: https://zmk.dev/docs/keymaps/behaviors/sensor-rotate
+        enc_scroll: enc_scroll {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc SCRL_DOWN>, <&msc SCRL_UP>;
+        };
+
+        // 参考: キー送出にしたい場合はこちらを sensor-bindings に使う
+        rot_kp: rot_kp {
+            compatible = "zmk,behavior-sensor-rotate-var";
+            #sensor-binding-cells = <2>;
+            bindings = <&kp>, <&kp>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            display-name = "Base";
+            bindings = <
+&kp ESC    &kp N1  &kp N2  &kp N3  &kp N4  &kp N5        &kp N6  &kp N7  &kp N8     &kp N9   &kp N0    &kp DEL
+&kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T         &kp Y   &kp U   &kp I      &kp O    &kp P     &kp BSPC
+&kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
+&kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
+                           &kp LGUI  &mo 1  &kp SPACE     &kp SPACE  &mo 2  &kp RALT
+&mkp MCLK                                                                     &mkp MCLK
+            >;
+            sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        lower_layer {
+            display-name = "Mouse/Nav (左手)";
+            bindings = <
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
+&trans         &trans         &trans         &kp UP         &trans         &mkp LCLK        &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: E=↑ T=左クリック   /  右: F1-F6
+&trans         &trans         &kp LEFT       &kp DOWN       &kp RIGHT      &mkp RCLK        &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ G=右クリック / 右: ナビ
+&trans         &trans         &trans         &trans         &trans         &mkp MCLK        &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: B=中クリック       /  右: F7-F10
+                                               &trans         &trans         &trans           &trans         &trans         &trans   // thumb
+&mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
+            >;
+            // 下位レイヤーではホイールを音量に
+            sensor-bindings = <&rot_kp C_VOL_UP C_VOL_DN &rot_kp C_VOL_UP C_VOL_DN>;
+        };
+
+        raise_layer {
+            display-name = "Mouse/Sym (右手)";
+            bindings = <
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &trans         &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替       /  右: Y=左クリック U=中クリック I=↑
+&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: Ins/PrtSc/F12
+                                               &trans         &trans         &trans           &trans         &trans         &trans   // thumb
+&mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
+            >;
+            // 上位レイヤーではホイールを水平スクロールに
+            sensor-bindings = <&rot_kp PG_DN PG_UP &rot_kp PG_DN PG_UP>;
+        };
+
+        /*
+         * ZMK Studio 用の予約レイヤー。
+         * 通常ビルドでは無視され、Studio 有効ビルドでのみ使えるようになる。
+         * devicetree で確保した数を超えるレイヤーは Studio では追加できないため、
+         * あらかじめ余分に用意しておく。
+         * https://zmk.dev/docs/features/studio#including-extra-layers
+         */
+        mac_layer {
+            display-name = "Mac";
+            /* Macの修飾キー: 物理CTRL→CMD / 物理GUI→CTRL。他は &trans でレイヤー0を透過 */
+            bindings = <
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
+            &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
+            &kp LCTRL &trans    &trans    &trans    &trans    &trans      // thumb: 左GUIの位置 → CTRL
+            &trans    &trans      // ホイールのプッシュ
+            >;
+            sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        ipad_layer {
+            display-name = "iPad";
+            /* iPadOSもCMD系。中身はMacと同じだが、将来分けられるよう別レイヤーにしてある */
+            bindings = <
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
+            &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
+            &kp LCTRL &trans    &trans    &trans    &trans    &trans      // thumb: 左GUIの位置 → CTRL
+            &trans    &trans      // ホイールのプッシュ
+            >;
+            sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        extra1 { status = "reserved"; };
+        extra2 { status = "reserved"; };
+    };
+};

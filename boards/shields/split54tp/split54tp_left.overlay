@@ -1,0 +1,25 @@
+/*
+ * split54tp 左半身 (ペリフェラル)
+ */
+
+#include "split54tp.dtsi"
+
+&left_encoder {
+    status = "okay";
+};
+
+/*
+ * ---- 左側ポインティングスティック (将来) ----
+ * 低消費電力I2C版 (lpps) 導入後、ここに実デバイスを定義し input-split に紐付ける。
+ * 左はペリフェラルなので、ZMK公式の「Split Peripheral」パターンを使う。
+ *   https://zmk.dev/docs/hardware-integration/pointing
+ *
+ *   &i2c0 {
+ *       lpps: pointing_device@57 {
+ *           compatible = "lpps";
+ *           reg = <0x57>;
+ *           irq-gpios = <&gpio0 9 GPIO_PULL_UP>;
+ *       };
+ *   };
+ *   &lpps_split { device = <&lpps>; };
+ */

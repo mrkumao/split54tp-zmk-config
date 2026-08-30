@@ -1,0 +1,41 @@
+# split54tp
+#
+# トラックポイントをセントラル側に置く制約があった名残で「右」をセントラルにしている。
+# 低消費電力I2C版へ移行後も、この構成のままで問題ない
+# (USBでキー入力を送れるのはセントラル側だけなので、右にUSBを挿す運用になる)。
+
+if SHIELD_SPLIT54TP_LEFT
+
+config ZMK_KEYBOARD_NAME
+	default "split54tp"
+
+endif
+
+if SHIELD_SPLIT54TP_RIGHT
+
+# 右半身をセントラル(ホスト接続側)にする
+config ZMK_SPLIT_ROLE_CENTRAL
+	default y
+
+config ZMK_KEYBOARD_NAME
+	default "split54tp"
+
+endif
+
+if SHIELD_SPLIT54TP_LEFT || SHIELD_SPLIT54TP_RIGHT
+
+config ZMK_SPLIT
+	default y
+
+# EC11 ロータリーエンコーダ
+config EC11
+	default y
+
+config EC11_TRIGGER_GLOBAL_THREAD
+	default y
+
+# マウスクリック/スクロール (&mkp / &msc)。ポインティングデバイスは不要。
+config ZMK_POINTING
+	default y
+
+endif

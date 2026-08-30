@@ -1,0 +1,281 @@
+/*
+ * split54tp - 共通デバイスツリー
+ *
+ * 物理配列: メイン 6列×4行 ＋ 親指3キー ＝ 27キー/半身 (計54キー)
+ * エンコーダ: スクロールホイール型(横軸/マウスホイール方式)
+ *           内側の第7列ストリップに CPU / スティック / エンコーダを配置
+ *
+ * チャーリープレックス 7線 (L0-L6 = XIAO D0-D6)
+ * 電気的マッピング RC(drive, sense):
+ *   通常列 outer/pinky/ring  : drive=L4/L5/L6, sense=L0(num)/L1(upper)/L2(home)/L3(lower)
+ *   反転列 middle/index/inner: drive=L0/L1/L2/L3(行), sense=L4/L5/L6(列)
+ *   親指3キー: index=(4,5) inner=(4,6) strip=(5,6)
+ *   エンコーダプッシュ: (0,1)
+ *   → 28ペア/半身。右半身は col-offset 7
+ *
+ * ZMK公式の charlieplex ドライバ仕様との整合を 2026-08-24 に検証済み:
+ *   「row は常に駆動ピン、column は常に受信ピン」「row==column は除外」
+ *   https://zmk.dev/docs/config/kscan
+ */
+
+#include <dt-bindings/zmk/matrix_transform.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <physical_layouts.dtsi>
+
+/ {
+    chosen {
+        zmk,kscan = &kscan0;
+        /*
+         * ★ ZMK Studio 対応のため zmk,matrix-transform は chosen に置かない。
+         *   公式: "The keyboard should also not have a chosen zmk,matrix-transform."
+         *   代わりに下の physical layout が transform を参照する。
+         *   https://zmk.dev/docs/features/studio
+         */
+#ifdef CONFIG_ZMK_DISPLAY
+        zephyr,display = &oled;
+#endif
+    };
+
+    /*
+     * 物理レイアウト (ZMK Studio がキーの配置を描画するのに必要)
+     *   単位は centi-keyunit (1キー = 100)。<&key_physical_attrs 幅 高 X Y 回転 rx ry>
+     *   X/Y はキーの左上。オーソリニア19.05mm等ピッチなので、
+     *   PCBのスイッチ実座標から機械的に生成した (2026-08-29)。
+     *   左半身 X=0〜600 / 右半身 X=740〜1340 (左右の間隔 1.40キーユニット = 26.67mm)
+     *   並び順はキーマップの bindings と完全に一致している。
+     */
+    default_layout: physical_layout_0 {
+        compatible = "zmk,physical-layout";
+        display-name = "split54tp";
+        transform = <&default_transform>;
+            /* num   */
+          keys = <&key_physical_attrs 100 100    0    0 0 0 0>
+                , <&key_physical_attrs 100 100  100    0 0 0 0>
+                , <&key_physical_attrs 100 100  200    0 0 0 0>
+                , <&key_physical_attrs 100 100  300    0 0 0 0>
+                , <&key_physical_attrs 100 100  400    0 0 0 0>
+                , <&key_physical_attrs 100 100  500    0 0 0 0>
+                , <&key_physical_attrs 100 100  840    0 0 0 0>
+                , <&key_physical_attrs 100 100  940    0 0 0 0>
+                , <&key_physical_attrs 100 100 1040    0 0 0 0>
+                , <&key_physical_attrs 100 100 1140    0 0 0 0>
+                , <&key_physical_attrs 100 100 1240    0 0 0 0>
+                , <&key_physical_attrs 100 100 1340    0 0 0 0>
+            /* upper */
+                , <&key_physical_attrs 100 100    0  100 0 0 0>
+                , <&key_physical_attrs 100 100  100  100 0 0 0>
+                , <&key_physical_attrs 100 100  200  100 0 0 0>
+                , <&key_physical_attrs 100 100  300  100 0 0 0>
+                , <&key_physical_attrs 100 100  400  100 0 0 0>
+                , <&key_physical_attrs 100 100  500  100 0 0 0>
+                , <&key_physical_attrs 100 100  840  100 0 0 0>
+                , <&key_physical_attrs 100 100  940  100 0 0 0>
+                , <&key_physical_attrs 100 100 1040  100 0 0 0>
+                , <&key_physical_attrs 100 100 1140  100 0 0 0>
+                , <&key_physical_attrs 100 100 1240  100 0 0 0>
+                , <&key_physical_attrs 100 100 1340  100 0 0 0>
+            /* home  */
+                , <&key_physical_attrs 100 100    0  200 0 0 0>
+                , <&key_physical_attrs 100 100  100  200 0 0 0>
+                , <&key_physical_attrs 100 100  200  200 0 0 0>
+                , <&key_physical_attrs 100 100  300  200 0 0 0>
+                , <&key_physical_attrs 100 100  400  200 0 0 0>
+                , <&key_physical_attrs 100 100  500  200 0 0 0>
+                , <&key_physical_attrs 100 100  840  200 0 0 0>
+                , <&key_physical_attrs 100 100  940  200 0 0 0>
+                , <&key_physical_attrs 100 100 1040  200 0 0 0>
+                , <&key_physical_attrs 100 100 1140  200 0 0 0>
+                , <&key_physical_attrs 100 100 1240  200 0 0 0>
+                , <&key_physical_attrs 100 100 1340  200 0 0 0>
+            /* lower */
+                , <&key_physical_attrs 100 100    0  300 0 0 0>
+                , <&key_physical_attrs 100 100  100  300 0 0 0>
+                , <&key_physical_attrs 100 100  200  300 0 0 0>
+                , <&key_physical_attrs 100 100  300  300 0 0 0>
+                , <&key_physical_attrs 100 100  400  300 0 0 0>
+                , <&key_physical_attrs 100 100  500  300 0 0 0>
+                , <&key_physical_attrs 100 100  840  300 0 0 0>
+                , <&key_physical_attrs 100 100  940  300 0 0 0>
+                , <&key_physical_attrs 100 100 1040  300 0 0 0>
+                , <&key_physical_attrs 100 100 1140  300 0 0 0>
+                , <&key_physical_attrs 100 100 1240  300 0 0 0>
+                , <&key_physical_attrs 100 100 1340  300 0 0 0>
+            /* thumb */
+                , <&key_physical_attrs 100 100  400  400 0 0 0>
+                , <&key_physical_attrs 100 100  500  400 0 0 0>
+                , <&key_physical_attrs 100 100  600  400 0 0 0>
+                , <&key_physical_attrs 100 100  740  400 0 0 0>
+                , <&key_physical_attrs 100 100  840  400 0 0 0>
+                , <&key_physical_attrs 100 100  940  400 0 0 0>
+            /* エンコーダのプッシュ 左|右 */
+                , <&key_physical_attrs 100 100  600  295 0 0 0>
+                , <&key_physical_attrs 100 100  740  295 0 0 0>
+          ;
+    };
+
+    kscan0: kscan {
+        compatible = "zmk,kscan-gpio-charlieplex";
+        wakeup-source;
+
+        gpios
+            = <&xiao_d 0 GPIO_ACTIVE_HIGH>   /* L0 */
+            , <&xiao_d 1 GPIO_ACTIVE_HIGH>   /* L1 */
+            , <&xiao_d 2 GPIO_ACTIVE_HIGH>   /* L2 */
+            , <&xiao_d 3 GPIO_ACTIVE_HIGH>   /* L3 */
+            , <&xiao_d 4 GPIO_ACTIVE_HIGH>   /* L4 */
+            , <&xiao_d 5 GPIO_ACTIVE_HIGH>   /* L5 */
+            , <&xiao_d 6 GPIO_ACTIVE_HIGH>   /* L6 */
+            ;
+
+        /*
+         * interrupt-gpios を設定すると割込みスキャンになり消費電力が大きく下がる。
+         * ただし容量が n(n-1)=42 から (n-1)(n-2)=30 へ減る (使用28なので余裕2)。
+         * 割込みピンには全sense線をダイオードORで接続する必要があり、
+         * かつ空きピンが無いため現状は未使用 (ポーリング動作)。
+         */
+    };
+
+    /* 7行(drive) x 14列(sense: 0-6=左, 7-13=右) / 56キーポジション */
+    default_transform: keymap_transform_0 {
+        compatible = "zmk,matrix-transform";
+        rows = <7>;
+        columns = <14>;
+        map = <
+/* num   : ESC 1 2 3 4 5   |   6 7 8 9 0 DEL */
+RC(4,0)  RC(5,0)  RC(6,0)  RC(0,4)  RC(0,5)  RC(0,6)     RC(0,13) RC(0,12) RC(0,11) RC(6,7)  RC(5,7)  RC(4,7)
+/* upper : TAB Q W E R T   |   Y U I O P BSPC */
+RC(4,1)  RC(5,1)  RC(6,1)  RC(1,4)  RC(1,5)  RC(1,6)     RC(1,13) RC(1,12) RC(1,11) RC(6,8)  RC(5,8)  RC(4,8)
+/* home  : CTRL A S D F G  |   H J K L ; ENTER */
+RC(4,2)  RC(5,2)  RC(6,2)  RC(2,4)  RC(2,5)  RC(2,6)     RC(2,13) RC(2,12) RC(2,11) RC(6,9)  RC(5,9)  RC(4,9)
+/* lower : SHIFT Z X C V B |   N M , . / SHIFT */
+RC(4,3)  RC(5,3)  RC(6,3)  RC(3,4)  RC(3,5)  RC(3,6)     RC(3,13) RC(3,12) RC(3,11) RC(6,10) RC(5,10) RC(4,10)
+/* thumb : 左3キー(index/inner/strip) | 右3キー(strip/inner/index) */
+                           RC(4,5)  RC(4,6)  RC(5,6)     RC(5,13) RC(4,13) RC(4,12)
+/* ホイール プッシュ 左 | 右 */
+RC(0,1)                                                  RC(0,8)
+        >;
+    };
+
+    /*
+     * スクロールホイール型エンコーダ (横軸 = マウスホイール方式)
+     * ZMKから見ればEC11と同じ2相インクリメンタルなので alps,ec11 ドライバで扱える。
+     * 各overlayで status = "okay" にする。
+     *
+     * ⚠ steps / triggers-per-rotation は THQWGD001C の実分解能が未確認。
+     *   実機で回してみて、1ノッチあたりのスクロール量が合うよう調整すること。
+     *
+     * ⚠ 右基板は ENC1 を物理的に180度回転させて実装している (PWR1/RST1との干渉回避)。
+     *   そのため右だけ回転方向が逆になる可能性がある。
+     *   逆だった場合は split54tp_right.overlay で a-gpios/b-gpios を入れ替える。
+     */
+    left_encoder: encoder_left {
+        compatible = "alps,ec11";
+        a-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        b-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        steps = <30>;
+        status = "disabled";
+    };
+
+    right_encoder: encoder_right {
+        compatible = "alps,ec11";
+        a-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        b-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        steps = <30>;
+        status = "disabled";
+    };
+
+    sensors: sensors {
+        compatible = "zmk,keymap-sensors";
+        sensors = <&left_encoder &right_encoder>;
+        triggers-per-rotation = <15>;
+    };
+
+    /*
+     * ---- ポインティングスティック (将来 / 低消費電力I2C版) ----
+     *
+     * 低消費電力ポインティングスティック (sekigon-gonnoc) に載せ替える方針。
+     *   モジュール: https://github.com/sekigon-gonnoc/low-power-pointing-stick
+     *   ドライバ  : https://github.com/sekigon-gonnoc/zmk-driver-lpps
+     *
+     * 標準の zmk,input-listener を使う実装なので、ZMK公式のペリフェラル用
+     * input-split パターンがそのまま適用できる = 左右両方で動かせる見込み。
+     *   https://zmk.dev/docs/hardware-integration/pointing
+     *
+     * 配線 (基板の改造は不要):
+     *   D9 / D10  … I2C (4.7kΩプルアップ実装済み)。OLEDとバス共用 (0x57 と 0x3C)
+     *   OLED1ヘッダのSCLピン (= XIAO P0.09) … IRQ / MOTION 線に転用
+     *
+     * 導入時にここへ追加する雛形:
+     *
+     *   / {
+     *       split_inputs {
+     *           #address-cells = <1>;
+     *           #size-cells = <0>;
+     *           lpps_split: lpps_split@0 {
+     *               compatible = "zmk,input-split";
+     *               reg = <0>;
+     *           };
+     *       };
+     *       lpps_listener: lpps_listener {
+     *           compatible = "zmk,input-listener";
+     *           status = "disabled";
+     *           device = <&lpps_split>;
+     *       };
+     *   };
+     */
+};
+
+#ifdef CONFIG_ZMK_DISPLAY
+/*
+ * ---- 状態モニタ用 OLED (SSD1306 / I2C) ----
+ * XIAOのD0-D10は全て使用済みのため、NFCパッド P0.09 / P0.10 を I2C に転用する。
+ *
+ * ⚠ Zephyr 4.1 移行で CONFIG_NFCT_PINS_AS_GPIOS は削除された。
+ *   現在は下記の devicetree 設定を使う。
+ *   https://zmk.dev/blog/2025/12/09/zephyr-4-1
+ *
+ * ⚠ このI2C/pinctrl定義は一般的なnRF52 + Zephyrの記法に基づく雛形。
+ *   実機ビルドで node label / property を要確認。
+ */
+&uicr {
+    nfct-pins-as-gpios;
+};
+
+&pinctrl {
+    i2c1_default: i2c1_default {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 0, 9)>, <NRF_PSEL(TWIM_SCL, 0, 10)>;
+        };
+    };
+    i2c1_sleep: i2c1_sleep {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 0, 9)>, <NRF_PSEL(TWIM_SCL, 0, 10)>;
+            low-power-enable;
+        };
+    };
+};
+
+&i2c1 {
+    compatible = "nordic,nrf-twim";
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+    pinctrl-0 = <&i2c1_default>;
+    pinctrl-1 = <&i2c1_sleep>;
+    pinctrl-names = "default", "sleep";
+
+    oled: ssd1306@3c {
+        compatible = "solomon,ssd1306fb";
+        reg = <0x3c>;
+        width = <128>;
+        height = <32>;
+        segment-offset = <0>;
+        page-offset = <0>;
+        display-offset = <0>;
+        multiplex-ratio = <31>;
+        segment-remap;
+        com-invdir;
+        com-sequential;
+        prechargep = <0x22>;
+    };
+};
+#endif /* CONFIG_ZMK_DISPLAY */

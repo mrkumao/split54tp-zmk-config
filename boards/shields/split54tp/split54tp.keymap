@@ -22,6 +22,19 @@
  *     戻すには Studio の "Restore Stock Settings" を実行してください。
  *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
  *
+ * ★ ファームウェア書き換え用のキー (2026-08-31 追加)
+ *     L2 + R (左手)  → 左半身をブートローダへ
+ *     L2 + N (右手)  → 右半身をブートローダへ
+ *
+ *   ZMK公式: リセット系ビヘイビアは「押した側」にだけ作用する (source-specific)。
+ *   そのため左右それぞれにキーが必要。コンボにすると常にセントラル(右)側で
+ *   実行されてしまうため、通常のキーとして両側に置いている。
+ *   https://zmk.dev/docs/keymaps/behaviors/reset
+ *
+ *   ⚠ これはファームが正常に起動し、キーが反応する場合にのみ使える。
+ *     起動しない / 配線ミスで反応しない場合は、XIAO のリセットボタンを
+ *     素早く2回押す (ハードウェア側の最後の砦)。
+ *
  * エンコーダは横軸のスクロールホイール(マウスホイール方式)。
  * ※ エンコーダへの behavior 割当は ZMK Studio では未対応のため、ここで定義します。
  * 回転はマウスのホイールスクロールとして送出する (&msc SCRL_UP / SCRL_DOWN)。
@@ -165,9 +178,9 @@
             display-name = "Mouse/Sym (右手)";
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &trans         &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替       /  右: Y=左クリック U=中クリック I=↑
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替 R=左をブートローダへ /  右: Y=左クリック U=中クリック I=↑
 &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: Ins/PrtSc/F12
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &trans         &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: N=右をブートローダへ Ins/PrtSc/F12
                                                &trans         &trans         &trans           &trans         &trans         &trans   // thumb
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;

@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# GitHub Actions からダウンロードしたビルド成果物
+# (リポジトリには置かない。Actions の Artifacts から都度取得する)
+firmware/
+firmware.zip
+*.uf2
+
+# バックアップ (ローカル作業用。リポジトリには置かない)
+*.bak
+*.bak-*
+*.bak2-*
+*.debug-*

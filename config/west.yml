@@ -4,14 +4,19 @@
 #   ZMK公式は revision の固定を強く推奨している。
 #   https://zmk.dev/blog/2025/06/20/pinned-zmk
 #
-#   いまは main を追っている。理由:
+#   2026-08-31: 初回ビルドが緑になったので main → SHA に固定した。
+#     641514a97db345f499dd50b0360e594270f008fe
+#
+#   固定前に main を追っていた理由:
 #     - main は Zephyr 4.1 / HWMv2 へ移行済み (2025-12)
 #     - 最新リリース v0.3 は移行前で、ボード名が seeeduino_xiao_ble のまま
 #     - 今後のコミュニティモジュールは main 系を前提にすると見込まれる
 #
-#   ⚠ 最初のビルドが緑になったら、その時点のコミットSHAに固定すること:
-#       revision: <40桁のSHA>
-#     main のまま放置すると、ある日突然ビルドが壊れる。
+#   ⚠ ZMKを更新したいときの手順:
+#       1. git ls-remote https://github.com/zmkfirmware/zmk.git main
+#       2. 出力されたSHAで下の revision を置換
+#       3. push してビルドが緑になることを確認
+#       4. 赤くなったら、このファイルを元のSHAに戻せば即座に復旧できる
 #
 # ★ トラックポイントについて
 #   PS/2版ドライバ (infused-kim) は ZMK本体をフォークに差し替える必要があり、
@@ -34,7 +39,7 @@ manifest:
   projects:
     - name: zmk
       remote: zmkfirmware
-      revision: main
+      revision: 641514a97db345f499dd50b0360e594270f008fe
       import: app/west.yml
   self:
     path: config

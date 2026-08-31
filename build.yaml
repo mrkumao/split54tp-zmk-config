@@ -16,5 +16,12 @@ include:
     cmake-args: -DCONFIG_ZMK_STUDIO=y
   - board: xiao_ble//zmk
     shield: split54tp_left        # ペリフェラル
+    # ⚠ 一時的なデバッグ設定 (2026-08-31 追加)
+    #   左は ZMK_USB が無効なため、通常ビルドでは何も出力されない。
+    #   分割ペアリングの成否をログで確認するために追加した。
+    #   確認が終わったら【必ずこの1行を削除する】。
+    #   電池持ちに無視できない影響が出るため、常用してはいけない。
+    #   https://zmk.dev/docs/development/usb-logging
+    snippet: zmk-usb-logging
   - board: xiao_ble//zmk
     shield: settings_reset        # ペアリング情報の消去用

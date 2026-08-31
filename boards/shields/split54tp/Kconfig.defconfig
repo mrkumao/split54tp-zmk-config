@@ -17,6 +17,12 @@ if SHIELD_SPLIT54TP_RIGHT
 config ZMK_SPLIT_ROLE_CENTRAL
 	default y
 
+# USB出力はセントラル(右)だけが持てる。
+# 共通の .conf に書くと左で依存関係を満たせず Kconfig 警告→ビルド中断になるため、
+# ここ(右シールド限定)に置く。
+config ZMK_USB
+	default y
+
 config ZMK_KEYBOARD_NAME
 	default "split54tp"
 
@@ -31,8 +37,10 @@ config ZMK_SPLIT
 config EC11
 	default y
 
-config EC11_TRIGGER_GLOBAL_THREAD
-	default y
+# ⚠ EC11_TRIGGER_GLOBAL_THREAD は choice(三択)のメンバーなので
+#   ここで default y を書いても効かず、Kconfig 警告→ビルド中断になる。
+#     "defaults do not affect choice symbols"
+#   選択は config/split54tp.conf 側の CONFIG_EC11_TRIGGER_GLOBAL_THREAD=y で行う。
 
 # マウスクリック/スクロール (&mkp / &msc)。ポインティングデバイスは不要。
 config ZMK_POINTING

@@ -44,6 +44,14 @@
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
+/*
+ * ★ マウススクロールの速度 (既定: 10)
+ *   &msc は押下時間に比例して積算する速度ベースの挙動。エンコーダは
+ *   press→release が一瞬なので、既定値のままだと積算量がほぼ0になり動かない。
+ *   下の scroll_dn / scroll_up マクロのホールド時間とセットで調整する。
+ *   https://zmk.dev/docs/keymaps/behaviors/mouse-emulation
+ */
+#define ZMK_POINTING_DEFAULT_SCRL_VAL 40
 #include <dt-bindings/zmk/pointing.h>
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/modifiers.h>
@@ -128,12 +136,47 @@
             mods = <(MOD_LCTL|MOD_RCTL)>;
         };
 
-        // ホイール回転 → マウススクロール
+        /*
+         * ホイール回転 → マウススクロール
+         *
+         * ⚠ 2026-09-03 実機で判明: bindings に &msc を直接書くと「全く動かない」。
+         *   &msc / &mmv は zmk,behavior-input-two-axis の実装で、
+         *   「押している間だけ動く」速度ベースの挙動 (time-to-max-speed-ms=300 /
+         *   acceleration-exponent=0)。エンコーダの回転は press→release が一瞬なので
+         *   積算量がほぼ0になり、ホストへ何も送られない。
+         *   (L2 の &rot_kp PG_DN PG_UP はキーイベントなので問題なく動いた)
+         *
+         *   → マクロで press → wait-ms → release とし、一定時間ホールドさせる。
+         *
+         * ★ 調整点 (実機で追い込むこと)
+         *     動かない        → wait-ms を長くする / SCRL_VAL を上げる
+         *     行き過ぎる      → wait-ms を短くする / SCRL_VAL を下げる
+         *     速く回すと遅れる → wait-ms を短くし、SCRL_VAL を上げて補う
+         *   目安: SCRL_VAL=40 は「毎秒40クリック」相当 = 1クリック25ms。
+         *         wait-ms=40 なら1ノッチあたり約1.6クリック。
+         *
+         * https://zmk.dev/docs/keymaps/behaviors/mouse-emulation
+         */
+        scroll_dn: scroll_dn {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <40>;
+            tap-ms = <10>;
+            bindings = <&macro_press &msc SCRL_DOWN>, <&macro_release &msc SCRL_DOWN>;
+        };
+        scroll_up: scroll_up {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <40>;
+            tap-ms = <10>;
+            bindings = <&macro_press &msc SCRL_UP>, <&macro_release &msc SCRL_UP>;
+        };
+
         // 公式: https://zmk.dev/docs/keymaps/behaviors/sensor-rotate
         enc_scroll: enc_scroll {
             compatible = "zmk,behavior-sensor-rotate";
             #sensor-binding-cells = <0>;
-            bindings = <&msc SCRL_DOWN>, <&msc SCRL_UP>;
+            bindings = <&scroll_dn>, <&scroll_up>;
         };
 
         // 参考: キー送出にしたい場合はこちらを sensor-bindings に使う

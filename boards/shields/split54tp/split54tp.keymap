@@ -51,7 +51,7 @@
  *   下の scroll_dn / scroll_up マクロのホールド時間とセットで調整する。
  *   https://zmk.dev/docs/keymaps/behaviors/mouse-emulation
  */
-#define ZMK_POINTING_DEFAULT_SCRL_VAL 40
+#define ZMK_POINTING_DEFAULT_SCRL_VAL 80
 #include <dt-bindings/zmk/pointing.h>
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/modifiers.h>
@@ -152,8 +152,9 @@
          *     動かない        → wait-ms を長くする / SCRL_VAL を上げる
          *     行き過ぎる      → wait-ms を短くする / SCRL_VAL を下げる
          *     速く回すと遅れる → wait-ms を短くし、SCRL_VAL を上げて補う
-         *   目安: SCRL_VAL=40 は「毎秒40クリック」相当 = 1クリック25ms。
-         *         wait-ms=40 なら1ノッチあたり約1.6クリック。
+         *   目安: SCRL_VAL は「毎秒Nクリック」相当。1クリックに 1000/N ms かかる。
+         *         SCRL_VAL=80 → 1クリック12.5ms → wait-ms=40 で1ノッチ約3.2クリック。
+         *   履歴: 40/40 (約1.6クリック) は「動くが少なすぎる」→ 80 へ (2026-09-03 実機)
          *
          * https://zmk.dev/docs/keymaps/behaviors/mouse-emulation
          */

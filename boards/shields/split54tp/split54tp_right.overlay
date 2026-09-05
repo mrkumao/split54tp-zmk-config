@@ -18,9 +18,13 @@
      *   実機で回転方向が左と逆だった場合は、下の2行のコメントを外して
      *   a/b を入れ替える (ファームウェアだけで直せる)。
      *
-     * a-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
-     * b-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+     * ★ 2026-09-05 実機で確認: 一般的なマウスホイールと回転方向が逆だった。
+     *   予見どおりだったので、下の2行を有効化して a/b を入れ替える。
+     *   左基板は回転させていないので入れ替えない。これで左右が揃う。
+     *   元に戻すには下の2行を削除する (dtsi の a=D7 / b=D8 に戻る)。
      */
+    a-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+    b-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
 };
 
 /*

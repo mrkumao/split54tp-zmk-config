@@ -16,7 +16,11 @@
  *
  * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
  *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
- *   変更するには、まず raise レイヤー(&mo 2)の左上キーで &studio_unlock を押してください。
+ *   変更するには、まず &studio_unlock を押してロックを解除します。
+ *     L2 + 左Shift位置 … 左半身
+ *     L2 + M          … 右半身  (2026-09-05 追加。右だけで解除できるように)
+ *   ⚠ 切断するか、Studio上で一定時間操作しないと再びロックされる。
+ *     https://zmk.dev/docs/keymaps/behaviors/studio-unlock
  *
  *   ⚠ 一度 Studio でキーマップを保存すると、このファイルへの変更は反映されなくなります。
  *     戻すには Studio の "Restore Stock Settings" を実行してください。
@@ -224,7 +228,7 @@
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
 &bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替 R=左をブートローダへ /  右: Y=左クリック U=中クリック I=↑
 &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &trans         &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: N=右をブートローダへ Ins/PrtSc/F12
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &studio_unlock &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: N=ブートローダ M=Studioロック解除 Ins/PrtSc/F12
                                                &trans         &trans         &trans           &trans         &trans         &trans   // thumb
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;

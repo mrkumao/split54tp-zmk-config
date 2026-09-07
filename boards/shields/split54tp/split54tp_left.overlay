@@ -52,13 +52,26 @@
     };
 };
 
+/*
+ * ⚠ 基板側が定義済みの i2c1_default / i2c1_sleep を「同名で上書き」するのをやめ、
+ *   **別名のノードを新規に作って &i2c1 から明示的に指す** (2026-09-08)
+ *
+ *   理由: 同名上書きが本当に効いているかを確認できていなかった。
+ *   効いていなければ I2C は基板既定の D4/D5 (P0.04/P0.05) に出る。
+ *   そこは **キーマトリクスの L4/L5** なので、OLED 側の線はプルアップで
+ *   3.3V のまま静止し、初期化が失敗する — 実測の症状と完全に一致する。
+ *
+ *   基板側の定義 (boards/seeed/xiao_ble/xiao_ble-pinctrl.dtsi):
+ *     i2c1_default: psels = <NRF_PSEL(TWIM_SDA, 0, 4)>, <NRF_PSEL(TWIM_SCL, 0, 5)>;
+ */
 &pinctrl {
-    i2c1_default: i2c1_default {
+    i2c1_oled_default: i2c1_oled_default {
         group1 {
             psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
         };
     };
-    i2c1_sleep: i2c1_sleep {
+
+    i2c1_oled_sleep: i2c1_oled_sleep {
         group1 {
             psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
             low-power-enable;
@@ -103,8 +116,8 @@
      *   本組み(PCB配線)にしたら FAST へ戻して良い。
      */
     clock-frequency = <I2C_BITRATE_STANDARD>;
-    pinctrl-0 = <&i2c1_default>;
-    pinctrl-1 = <&i2c1_sleep>;
+    pinctrl-0 = <&i2c1_oled_default>;
+    pinctrl-1 = <&i2c1_oled_sleep>;
     pinctrl-names = "default", "sleep";
 
     /*

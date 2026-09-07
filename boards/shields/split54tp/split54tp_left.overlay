@@ -94,9 +94,18 @@
      *   その際の 128x64 用の差分は com-sequential を外し
      *   height=64 / multiplex-ratio=63 にするだけ。
      */
-    oled: ssd1306@3c {
+    /*
+     * ⚠ アドレスを 0x3D にしている (2026-09-08)
+     *   USB ログで `<err> ssd1306: Failed to initialize device!` を確認。
+     *   電源極性(実測+3.3V)・SDA/SCL の入替え・100kHz 化はいずれも空振りだったため、
+     *   残る候補として I2C アドレスを疑う。
+     *   基板 MN096-12864-4G の裏面に R3+/R3- / R4+/R4- の3パッド組があり、
+     *   この種のモジュールでは 0x3C / 0x3D の選択に使われることが多い。
+     *   0x3C に戻す場合は reg とノード名の両方を戻すこと。
+     */
+    oled: ssd1306@3d {
         compatible = "solomon,ssd1306fb";
-        reg = <0x3c>;
+        reg = <0x3d>;
         width = <128>;
         height = <32>;
         segment-offset = <0>;

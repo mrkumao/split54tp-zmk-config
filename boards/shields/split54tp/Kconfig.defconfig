@@ -9,37 +9,13 @@ if SHIELD_SPLIT54TP_LEFT
 config ZMK_KEYBOARD_NAME
 	default "split54tp"
 
-# ---- 状態モニタ用 OLED (2026-09-07 追加 / まずは左だけで検証) ----
-#
-# 右(セントラル)では J2 が TP センサに隠れていて配線できないため、
-# 配線可能な左で先に検証する。左はペリフェラルなので表示できる情報が
-# 限られるが、「rev.6 で左にも OLED を載せる価値があるか」を判断する
-# 材料がまさにこれなので、検証としては有意義。
-#
-# ⚠ 共通の .conf ではなくここに置く理由:
-#   ZMK_DISPLAY_BLANK_ON_IDLE 等は表示が有効な時だけ存在するシンボルで、
-#   共通 conf に書くと右で依存を満たせず Kconfig 警告 → ビルド中断になる。
-#   Kconfig.defconfig の default は依存を満たさない側では無視されるので安全。
-#
-# 検証が済んだら、この4項目を下の
-#   if SHIELD_SPLIT54TP_LEFT || SHIELD_SPLIT54TP_RIGHT
-# ブロックへ移して両側で有効にする。
+# ---- 状態モニタ用 OLED ----
+#   表示系の CONFIG は **split54tp_left.conf** に移した (2026-09-07)。
+#   理由: CONFIG_LV_COLOR_DEPTH_1 は choice のメンバーで、
+#         Kconfig.defconfig の default では設定できないため。
+#   シールド名と同名の .conf はそのシールドのビルドでのみ読まれるので、
+#   片側だけ有効にしたい設定の置き場所として最も素直。
 
-config ZMK_DISPLAY
-	default y
-
-config I2C
-	default y
-
-config SSD1306
-	default y
-
-config ZMK_DISPLAY_BLANK_ON_IDLE
-	default y
-
-# ⚠ LV_Z_VDB_SIZE は上書きしない (ZMK 既定の 64% を使う)
-#   2026-09-07 に 128x64 の表示不良の対処として 100 にしたが、
-#   128x32 では動作実績のある既定値をそのまま使う方が安全。
 endif
 
 if SHIELD_SPLIT54TP_RIGHT

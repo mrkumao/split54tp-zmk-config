@@ -23,3 +23,68 @@
  *   };
  *   &lpps_split { device = <&lpps>; };
  */
+
+/*
+ * ---- 状態モニタ用 OLED (2026-09-07 追加) ----
+ *   秋月電子 通販コード 112031 / SUNHOKEY
+ *   0.96インチ **128 x 64** 白色 / 制御IC SSD1315 (旧ロットは SSD1306) / I2C 0x3C
+ *   外形 27.0 x 24.7mm / 電源 3〜5V / ピン 4本 (GND / VDD / SCK / SDA)
+ *   https://akizukidenshi.com/catalog/g/g112031/
+ *
+ * ⚠ #ifdef CONFIG_ZMK_DISPLAY で囲ってはいけない。
+ *   Zephyr はデバイスツリーを Kconfig より先に処理するので、
+ *   前処理の時点で CONFIG_* は存在せず、常に偽になる。
+ *   「OLED を載せる側の overlay にだけ無条件で書く」で出し分ける。
+ *   CONFIG_ZMK_DISPLAY / SSD1306 は Kconfig.defconfig の左ブロックで有効化している。
+ *
+ * ⚠ 配線は D9 / D10。P0.09 / P0.10 は低周波 I/O 専用(10kHzまで)で I2C に使えない。
+ *   D9 = P1.14 (SDA) / D10 = P1.15 (SCL)。プルアップ 4.7kΩ (R1/R2) 実装済み。
+ *   モジュール側の並びは GND / VDD / SCK / SDA なので、J2 とは
+ *   1↔2 と 3↔4 がたすき掛けになる。
+ *
+ * ⚠ 128x64 の設定。com-sequential は 128x32 用なので付けない (表示が化ける)。
+ *
+ * ⚠ LPPS (0x57) も同じ D9/D10 に載る。導入時は **この &i2c1 の下に**追加すること。
+ */
+/ {
+    chosen {
+        zephyr,display = &oled;
+    };
+};
+
+&pinctrl {
+    i2c1_default: i2c1_default {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
+        };
+    };
+    i2c1_sleep: i2c1_sleep {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
+            low-power-enable;
+        };
+    };
+};
+
+&i2c1 {
+    compatible = "nordic,nrf-twim";
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+    pinctrl-0 = <&i2c1_default>;
+    pinctrl-1 = <&i2c1_sleep>;
+    pinctrl-names = "default", "sleep";
+
+    oled: ssd1306@3c {
+        compatible = "solomon,ssd1306fb";
+        reg = <0x3c>;
+        width = <128>;
+        height = <64>;
+        segment-offset = <0>;
+        page-offset = <0>;
+        display-offset = <0>;
+        multiplex-ratio = <63>;
+        segment-remap;
+        com-invdir;
+        prechargep = <0x22>;
+    };
+};

@@ -31,9 +31,13 @@
          *   代わりに下の physical layout が transform を参照する。
          *   https://zmk.dev/docs/features/studio
          */
-#ifdef CONFIG_ZMK_DISPLAY
-        zephyr,display = &oled;
-#endif
+        /*
+         * ⚠ zephyr,display はここに書けない。
+         *   Zephyr は **デバイスツリーを Kconfig より先に処理する** ため、
+         *   .dtsi / .overlay の前処理時点で CONFIG_* はまだ存在しない。
+         *   #ifdef CONFIG_ZMK_DISPLAY は常に偽になる (2026-09-07 に実機ビルドで判明)。
+         *   → OLED 関連は split54tp_left.overlay に無条件で書いている。
+         */
     };
 
     /*
@@ -233,8 +237,7 @@ RC(0,1)                                                  RC(0,8)
  *   現在は下記の devicetree 設定を使う。
  *   https://zmk.dev/blog/2025/12/09/zephyr-4-1
  *
- * ⚠ この設定は OLED 用ではなく **P0.09 を LPPS の MOTION に使うため** に必要。
- *   そのため #ifdef CONFIG_ZMK_DISPLAY の外に出してある (2026-09-07 移動)。
+ * ⚠ この設定は P0.09 を LPPS の MOTION に使うために必要。
  *
  * ⚠ P0.09 / P0.10 は nRF52840 データシート上
  *   「Standard drive, low frequency I/O only」= **10kHz まで** に分類される。
@@ -246,61 +249,9 @@ RC(0,1)                                                  RC(0,8)
     nfct-pins-as-gpios;
 };
 
-#ifdef CONFIG_ZMK_DISPLAY
 /*
- * ---- 状態モニタ用 OLED ----
- *   秋月電子 通販コード 112031 / SUNHOKEY
- *   0.96インチ **128 x 64** 白色 / 制御IC **SSD1315**(旧ロットは SSD1306) / I2C
- *   外形 27.0 x 24.7mm / 電源 3〜5V / ピン 4本 (GND / VDD / SCK / SDA)
- *   https://akizukidenshi.com/catalog/g/g112031/
- *
- * ⚠ 2026-09-07 修正: 以前は 128x32 の設定だった。実物は 128x64 なので
- *   height / multiplex-ratio を変更し、com-sequential を削除した。
- *   com-sequential は「COM ピンの配線が sequential」を意味する 128x32 用の指定で、
- *   128x64 モジュールは alternative 配線のため付けてはいけない(表示が化ける)。
- *
- * ⚠ 2026-09-07 修正: I2C を P0.09/P0.10 から **D9/D10** へ移した。
- *   P0.09/P0.10 は低周波 I/O 専用(10kHz まで)で、I2C の速度域に使えない。
- *   D9 = P1.14 (SDA) / D10 = P1.15 (SCL)。
- *   プルアップ 4.7kΩ (R1/R2) は D9/D10 に実装済みなのでそのまま使える。
- *
- * ⚠ LPPS (ポインティングスティック 0x57) も同じ D9/D10 に載る。
- *   **必ず同一の i2c ノードの下に両方を書くこと。**
+ * ---- OLED はここには書かない ----
+ * デバイスツリーは Kconfig より先に処理されるため、この共通 dtsi で
+ * #ifdef CONFIG_ZMK_DISPLAY による出し分けはできない。
+ * OLED を載せる側の overlay (現在は split54tp_left.overlay) に無条件で書くこと。
  */
-&pinctrl {
-    i2c1_default: i2c1_default {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
-        };
-    };
-    i2c1_sleep: i2c1_sleep {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
-            low-power-enable;
-        };
-    };
-};
-
-&i2c1 {
-    compatible = "nordic,nrf-twim";
-    status = "okay";
-    clock-frequency = <I2C_BITRATE_FAST>;
-    pinctrl-0 = <&i2c1_default>;
-    pinctrl-1 = <&i2c1_sleep>;
-    pinctrl-names = "default", "sleep";
-
-    oled: ssd1306@3c {
-        compatible = "solomon,ssd1306fb";
-        reg = <0x3c>;
-        width = <128>;
-        height = <64>;
-        segment-offset = <0>;
-        page-offset = <0>;
-        display-offset = <0>;
-        multiplex-ratio = <63>;
-        segment-remap;
-        com-invdir;
-        prechargep = <0x22>;
-    };
-};
-#endif /* CONFIG_ZMK_DISPLAY */

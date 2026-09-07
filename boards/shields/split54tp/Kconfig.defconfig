@@ -37,6 +37,15 @@ config SSD1306
 config ZMK_DISPLAY_BLANK_ON_IDLE
 	default y
 
+# LVGL の描画バッファを画面全体にする (既定は ZMK が 64% に設定)
+#
+# 2026-09-07: 128x64 で表示の一部が砂嵌(未初期化の表示RAM)になったため。
+#   バッファが画面より小さいと分割して転送するので、
+#   一度も書かれない領域が残ると初期状態のRAMがそのまま見える。
+#   100% にすれば毎回画面全体が転送される。
+config LV_Z_VDB_SIZE
+	default 100
+
 endif
 
 if SHIELD_SPLIT54TP_RIGHT

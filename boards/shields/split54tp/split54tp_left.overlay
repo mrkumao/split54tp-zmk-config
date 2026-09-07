@@ -74,26 +74,32 @@
     pinctrl-1 = <&i2c1_sleep>;
     pinctrl-names = "default", "sleep";
 
+    /*
+     * ⚠ 2026-09-07: 128x64 での表示が正しく出せなかったため、
+     *   いったん **128x32** に落として「配線もドライバも正しい」ことを確定させる。
+     *   パネルは 64行あるが、上半分だけを使う状態になる。
+     *
+     *   ここの各プロパティは、コミュニティモジュール zmk-oled-adapter の
+     *   oled_adapter_seeeduino_xiao_ble_128x32.overlay と**完全に同一**にしてある。
+     *   （動作実績のある定義に合わせ、自前の推測を排除するため）
+     *   https://github.com/mctechnology17/zmk-oled-adapter
+     *
+     *   128x64 化は rev.6 の設計時に、同モジュールの導入も含めて再挑戦する。
+     *   その際の 128x64 用の差分は com-sequential を外し
+     *   height=64 / multiplex-ratio=63 にするだけ。
+     */
     oled: ssd1306@3c {
         compatible = "solomon,ssd1306fb";
         reg = <0x3c>;
         width = <128>;
-        height = <64>;
+        height = <32>;
         segment-offset = <0>;
         page-offset = <0>;
         display-offset = <0>;
-        multiplex-ratio = <63>;
+        multiplex-ratio = <31>;
         segment-remap;
         com-invdir;
-        /*
-         * ⚠ inversion-on は必須 (2026-09-07)
-         *   ZMK の CONFIG_ZMK_DISPLAY_INVERT は既定 n = 「黒文字/白背景」で描画する。
-         *   つまり LVGL は画面をほぼ全点灯で描いてくる。
-         *   パネル側で反転させて初めて「黒背景/白文字」になる。
-         *   コミュニティモジュール zmk-oled-adapter の 128x64 用定義も
-         *   この1行だけが本定義との差分だった。
-         *   https://github.com/mctechnology17/zmk-oled-adapter
-         */
+        com-sequential;
         inversion-on;
         prechargep = <0x22>;
     };

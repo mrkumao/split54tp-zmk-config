@@ -85,6 +85,16 @@
         multiplex-ratio = <63>;
         segment-remap;
         com-invdir;
+        /*
+         * ⚠ inversion-on は必須 (2026-09-07)
+         *   ZMK の CONFIG_ZMK_DISPLAY_INVERT は既定 n = 「黒文字/白背景」で描画する。
+         *   つまり LVGL は画面をほぼ全点灯で描いてくる。
+         *   パネル側で反転させて初めて「黒背景/白文字」になる。
+         *   コミュニティモジュール zmk-oled-adapter の 128x64 用定義も
+         *   この1行だけが本定義との差分だった。
+         *   https://github.com/mctechnology17/zmk-oled-adapter
+         */
+        inversion-on;
         prechargep = <0x22>;
     };
 };

@@ -69,7 +69,13 @@
 &i2c1 {
     compatible = "nordic,nrf-twim";
     status = "okay";
-    clock-frequency = <I2C_BITRATE_FAST>;
+    /*
+     * ⚠ 100kHz にしている (2026-09-07)
+     *   ブレッドボード＋ジャンパ線の配線で 400kHz(I2C_BITRATE_FAST) だと、
+     *   初期化の途中で通信が失敗している疑いがある。
+     *   本組み(PCB配線)にしたら FAST へ戻して良い。
+     */
+    clock-frequency = <I2C_BITRATE_STANDARD>;
     pinctrl-0 = <&i2c1_default>;
     pinctrl-1 = <&i2c1_sleep>;
     pinctrl-names = "default", "sleep";

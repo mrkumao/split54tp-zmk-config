@@ -14,15 +14,16 @@ include:
     shield: split54tp_right       # セントラル (USB/BLEでホストに接続)
     snippet: studio-rpc-usb-uart
     cmake-args: -DCONFIG_ZMK_STUDIO=y
-  # ⚠ 一時的に USB ログを有効にしている (2026-09-07 / OLED の初期化調査)
-  #   OLED が正しく表示できない原因を、設定を変えて画を見るのではなく
-  #   ドライバのログを直接読んで特定するため。
-  #   分割BLEペアリングの検証 (2026-08-31) で使ったのと同じ手法。
-  #     ls /dev/cu.usbmodem*        ← 左を USB で挿すと1つ増える
+  # 左で USB ログを取りたいときは、下の shield 行の次に snippet を1行足す。
+  #     snippet: zmk-usb-logging
+  #   公式: https://zmk.dev/docs/development/usb-logging
+  #   左は ZMK_USB が無効 (右限定) なので、通常ビルドでは何も出力しない。
+  #   有効化すると /dev/cu.usbmodem* が1つ増える。
+  #     ls /dev/cu.usbmodem*
   #     cat /dev/cu.usbmodemXXXX
-  #   調査が済んだら snippet の行を消すこと（電池消費が増えるため常用しない）。
+  #   ⚠ 電池消費が増えるため常用しない。調査が済んだら必ず戻すこと。
+  #   実績: 2026-08-31 分割BLEペアリング検証 / 2026-09-07〜08 OLED 初期化ログ
   - board: xiao_ble//zmk
     shield: split54tp_left        # ペリフェラル
-    snippet: zmk-usb-logging
   - board: xiao_ble//zmk
     shield: settings_reset        # ペアリング情報の消去用

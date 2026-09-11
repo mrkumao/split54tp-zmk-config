@@ -18,7 +18,7 @@
  *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
  *   変更するには、まず &studio_unlock を押してロックを解除します。
  *     L2 + 左Shift位置 … 左半身
- *     L2 + M          … 右半身  (2026-09-05 追加。右だけで解除できるように)
+ *     L2 + 右Shift位置 … 右半身  (2026-09-12 変更。M はゴーストで使えない。下記★参照)
  *   ⚠ 切断するか、Studio上で一定時間操作しないと再びロックされる。
  *     https://zmk.dev/docs/keymaps/behaviors/studio-unlock
  *
@@ -26,9 +26,32 @@
  *     戻すには Studio の "Restore Stock Settings" を実行してください。
  *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
  *
- * ★ ファームウェア書き換え用のキー (2026-08-31 追加)
- *     L2 + R (左手)  → 左半身をブートローダへ
- *     L2 + N (右手)  → 右半身をブートローダへ
+ * ★ ファームウェア書き換え用のキー (2026-08-31 追加 / 2026-09-12 右を変更)
+ *     L2 + R    (左手) → 左半身をブートローダへ
+ *     L2 + BSPC (右手) → 右半身をブートローダへ
+
+ * ★★ チャーリープレックスのゴースト (2026-09-12 実機で確定) ★★
+ *
+ *   内側親指 RC(5,6) を押している間、sense線5のキー (7/U/J/M) を押すと
+ *   ダイオードが直列につながり、sense線6の同じ行 (6/Y/H/N) が
+ *   「押された」ことになる。逆に drive線6のキー (9/O/L/.) を押すと
+ *   (0/P/;//) が立つ。これは電気的な制約でファームでは直せない。
+ *
+ *   実害の例: L2 + M → ゴーストで N が立ち、旧配置の &bootloader が発火して
+ *             右半身がブートローダに入る (2026-09-12 に3時間を費やした)
+ *             L2 + J → ← に加えて H の右クリックが出る (現在も再現する)
+ *
+ *   【原則】内側親指と併用するレイヤーでは、次の8か所に
+ *           破壊的な操作やマウスクリックを置かないこと。
+ *             6 / Y / H / N  (右・global col 13)
+ *             0 / P / ; / /  (右)
+ *           左半身も対称に 5 / T / G / B と同等の位置が該当する。
+ *
+ *   【ゴースト非対象の安全な位置】(内側親指と併用しても幽霊が立たない)
+ *             右: I, BSPC, ,(カンマ), 右Shift
+ *           → &bootloader と &studio_unlock はここへ逃がしてある。
+ *
+ *   rev.6 では親指キーとメイン列の電気的マッピングを見直すこと (最重要課題)。
  *
  *   ZMK公式: リセット系ビヘイビアは「押した側」にだけ作用する (source-specific)。
  *   そのため左右それぞれにキーが必要。コンボにすると常にセントラル(右)側で
@@ -226,9 +249,9 @@
             display-name = "Mouse/Sym (右手)";
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替 R=左をブートローダへ /  右: Y=左クリック U=中クリック I=↑
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &bootloader   // 左: R=左をブートローダへ / 右: BSPC=右をブートローダへ(ゴースト非対象)
 &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &studio_unlock &studio_unlock &kp INS        &kp PSCRN      &kp F12   // 右: N=ブートローダ M=解除 ,=解除(★調査用・2026-09-12 追加。済んだら &trans へ戻す)
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &kp F12        &kp INS        &kp PSCRN      &studio_unlock   // 左: Shift位置=Studio解除 / 右: Shift位置=Studio解除(ゴースト非対象) ,=F12
                                                &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;

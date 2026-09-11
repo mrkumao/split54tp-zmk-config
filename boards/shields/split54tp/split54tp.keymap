@@ -234,11 +234,11 @@
         lower_layer {
             display-name = "Mouse/Nav (左手)";
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
-&trans         &trans         &trans         &kp UP         &trans         &mkp LCLK        &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: E=↑ T=左クリック   /  右: F1-F6
-&trans         &trans         &kp LEFT       &kp DOWN       &kp RIGHT      &mkp RCLK        &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ G=右クリック / 右: ナビ
-&trans         &trans         &trans         &trans         &trans         &mkp MCLK        &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: B=中クリック       /  右: F7-F10
-                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
+&kp GRAVE      &none          &bt_2          &bt_3          &bt_4          &none            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 左: 1/5 はゴースト対象 → &none (bt_1 は TAB へ。記号は右半身)
+&bt_1          &none          &kp BSLH       &kp UP         &mkp LCLK      &none            &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: TAB=BLE1 W=\ E=↑ R=左クリック / Q,T は &none
+&trans         &none          &kp LEFT       &kp DOWN       &kp RIGHT      &none            &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ / A,G は &none
+&trans         &none          &mkp MCLK      &trans         &mkp RCLK      &none            &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: X=中クリック V=右クリック / Z,B は &none
+                                               &kp LGUI       &none          &trans           &trans         &trans         &kp LGUI   // thumb: 左中央は左内側親指のゴースト対象 → &none
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 下位レイヤーではホイールを音量に
@@ -248,11 +248,11 @@
         raise_layer {
             display-name = "Mouse/Sym (右手)";
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &bootloader   // 左: R=左をブートローダへ / 右: BSPC=右をブートローダへ(ゴースト非対象)
-&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &kp F12        &kp INS        &kp PSCRN      &studio_unlock   // 左: Shift位置=Studio解除 / 右: Shift位置=Studio解除(ゴースト非対象) ,=F12
-                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &none          &kp UNDER      &kp PLUS       &kp LBRC       &none          &kp PIPE   // 左はゴーストなし。右: 6/0 はゴースト対象 → &none (' と ] は L1 で)
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans           &none          &mkp LCLK      &kp UP         &kp HOME       &none          &bootloader   // 左: R=左をブートローダへ / 右: U=左クリック BSPC=右をブートローダへ / Y,P は &none
+&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &none          &kp LEFT       &kp DOWN       &kp RIGHT      &none          &mkp RCLK   // 右: J← K↓ L→ ENT=右クリック / H,; は &none
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &none          &kp PSCRN      &kp F12        &kp INS        &none          &studio_unlock   // 右: M=PrtSc ,=F12 .=Ins RShift=Studio解除 / N,/ は &none
+                                               &kp LGUI       &trans         &trans           &trans         &none          &kp LGUI   // thumb: 右中央は右内側親指のゴースト対象 → &none
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 上位レイヤーではホイールを水平スクロールに

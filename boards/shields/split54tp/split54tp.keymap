@@ -11,7 +11,7 @@
  *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ≡ ├─────┼─────┼─────┼─────┼─────┼─────┤  ≡=スクロールホイール
  *  │SHIFT│  Z  │  X  │  C  │  V  │  B  │   │  N  │  M  │  ,  │  .  │  /  │SHIFT│
  *  └─────┴─────┴─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┴─────┴─────┘
- *                    │GUI  │ L1  │SPC  │   │SPC  │ L2  │ALT  │
+ *                    │ALT  │SPC  │ L1  │   │ L2  │SPC  │ALT  │
  *                    └─────┴─────┴─────┘   └─────┴─────┴─────┘
  *
  * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
@@ -202,7 +202,7 @@
 &kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T         &kp Y   &kp U   &kp I      &kp O    &kp P     &kp BSPC
 &kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
 &kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
-                           &kp LGUI  &mo 1  &kp SPACE     &kp SPACE  &mo 2  &kp RALT
+                           &kp LALT  &kp SPACE  &mo 1     &mo 2  &kp SPACE  &kp RALT
 &mkp MCLK                                                                     &mkp MCLK
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
@@ -215,7 +215,7 @@
 &trans         &trans         &trans         &kp UP         &trans         &mkp LCLK        &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: E=↑ T=左クリック   /  右: F1-F6
 &trans         &trans         &kp LEFT       &kp DOWN       &kp RIGHT      &mkp RCLK        &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ G=右クリック / 右: ナビ
 &trans         &trans         &trans         &trans         &trans         &mkp MCLK        &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: B=中クリック       /  右: F7-F10
-                                               &trans         &trans         &trans           &trans         &trans         &trans   // thumb
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 下位レイヤーではホイールを音量に
@@ -229,7 +229,7 @@
 &bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替 R=左をブートローダへ /  右: Y=左クリック U=中クリック I=↑
 &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
 &studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &studio_unlock &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: N=ブートローダ M=Studioロック解除 Ins/PrtSc/F12
-                                               &trans         &trans         &trans           &trans         &trans         &trans   // thumb
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 上位レイヤーではホイールを水平スクロールに
@@ -251,7 +251,7 @@
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
             &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
-            &kp LCTRL &trans    &trans    &trans    &trans    &trans      // thumb: 左GUIの位置 → CTRL
+            &trans    &trans    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。Cmd は小指 CTRL 位置
             &trans    &trans      // ホイールのプッシュ
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
@@ -265,7 +265,7 @@
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
             &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
-            &kp LCTRL &trans    &trans    &trans    &trans    &trans      // thumb: 左GUIの位置 → CTRL
+            &trans    &trans    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。Cmd は小指 CTRL 位置
             &trans    &trans      // ホイールのプッシュ
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;

@@ -228,7 +228,7 @@
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
 &bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &trans   // 左: BLE/出力切替 R=左をブートローダへ /  右: Y=左クリック U=中クリック I=↑
 &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &studio_unlock &trans         &kp INS        &kp PSCRN      &kp F12   // 左: Studioロック解除+F /  右: N=ブートローダ M=Studioロック解除 Ins/PrtSc/F12
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &bootloader    &studio_unlock &studio_unlock &kp INS        &kp PSCRN      &kp F12   // 右: N=ブートローダ M=解除 ,=解除(★調査用・2026-09-12 追加。済んだら &trans へ戻す)
                                                &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;

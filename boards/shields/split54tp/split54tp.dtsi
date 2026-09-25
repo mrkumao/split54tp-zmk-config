@@ -291,8 +291,14 @@ RC(2,1)                                             RC(2,8)
 &i2c1 {
     compatible = "nordic,nrf-twim";
     status = "okay";
-    /* 100kHz のまま。PCB 本組みで安定を確認したら I2C_BITRATE_FAST へ戻してよい。 */
-    clock-frequency = <I2C_BITRATE_STANDARD>;
+    /*
+     * ★ 2026-09-26 400kHz (FAST) に変更。ドライバ README の例と同じ値。
+     *   100kHz では右 LPPS で「Motion detected → 約500ms 後に I2C read failed: -5」
+     *   (転送タイムアウト) が多発した。MOTION がローの短い間に読み切るため速くする。
+     *   OLED の 100kHz 化はブレッドボード配線時の暫定策だった (PCB 本組みでは不要の見込み)。
+     *   戻すときは I2C_BITRATE_STANDARD。
+     */
+    clock-frequency = <I2C_BITRATE_FAST>;
     pinctrl-0 = <&i2c1_oled_default>;
     pinctrl-1 = <&i2c1_oled_sleep>;
     pinctrl-names = "default", "sleep";

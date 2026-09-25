@@ -25,5 +25,6 @@ include:
   #   実績: 2026-08-31 分割BLEペアリング検証 / 2026-09-07〜08 OLED 初期化ログ
   - board: xiao_ble//zmk
     shield: split54tp_left        # ペリフェラル
+    snippet: zmk-usb-logging      # ★調査中 (2026-09-26): 左 LPPS の値を見るため。調査後は削除
   - board: xiao_ble//zmk
     shield: settings_reset        # ペアリング情報の消去用

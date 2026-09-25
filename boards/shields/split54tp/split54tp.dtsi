@@ -298,7 +298,12 @@ RC(2,1)                                             RC(2,8)
      *   OLED の 100kHz 化はブレッドボード配線時の暫定策だった (PCB 本組みでは不要の見込み)。
      *   戻すときは I2C_BITRATE_STANDARD。
      */
-    clock-frequency = <I2C_BITRATE_FAST>;
+    /*
+     * ★ 2026-09-26 (2回目) 100kHz に戻して比較中。
+     *   400kHz では生データが常に 00 00 0x (X/Y 常に0、Z も 3〜10 しか動かない)。
+     *   100kHz では失敗は多いが X/Y に値が出ていた (DF E0 00 / AC AC 2A)。
+     */
+    clock-frequency = <I2C_BITRATE_STANDARD>;
     pinctrl-0 = <&i2c1_oled_default>;
     pinctrl-1 = <&i2c1_oled_sleep>;
     pinctrl-names = "default", "sleep";

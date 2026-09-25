@@ -9,20 +9,14 @@
 };
 
 /*
- * ---- 左側ポインティングスティック (将来) ----
- * 低消費電力I2C版 (lpps) 導入後、ここに実デバイスを定義し input-split に紐付ける。
- * 左はペリフェラルなので、ZMK公式の「Split Peripheral」パターンを使う。
- *   https://zmk.dev/docs/hardware-integration/pointing
- *
- *   &i2c0 {
- *       lpps: pointing_device@57 {
- *           compatible = "lpps";
- *           reg = <0x57>;
- *           irq-gpios = <&gpio0 9 GPIO_PULL_UP>;
- *       };
- *   };
- *   &lpps_split { device = <&lpps>; };
+ * ---- 左側ポインティングスティック ---- 2026-09-26 有効化
+ * lpps ノード本体は split54tp.dtsi の &i2c1 にある。左はペリフェラルなので
+ * input-split に紐付けてセントラル(右)へ転送する。
+ * 軸の向きが違ったら、ここに input-processors を足す (右 overlay の説明を参照)。
  */
+&lpps_split {
+    device = <&lpps>;
+};
 
 /*
  * ---- 状態モニタ用 OLED (2026-09-07 追加) ----
@@ -44,7 +38,7 @@
  *
  * ⚠ 128x64 の設定。com-sequential は 128x32 用なので付けない (表示が化ける)。
  *
- * ⚠ LPPS (0x57) も同じ D9/D10 に載る。導入時は **この &i2c1 の下に**追加すること。
+ * LPPS (0x57) も同じ D9/D10 に載る (dtsi で定義済み)。
  */
 / {
     chosen {
@@ -53,73 +47,12 @@
 };
 
 /*
- * ⚠ 基板側が定義済みの i2c1_default / i2c1_sleep を「同名で上書き」するのをやめ、
- *   **別名のノードを新規に作って &i2c1 から明示的に指す** (2026-09-08)
- *
- *   理由: 同名上書きが本当に効いているかを確認できていなかった。
- *   効いていなければ I2C は基板既定の D4/D5 (P0.04/P0.05) に出る。
- *   そこは **キーマトリクスの L4/L5** なので、OLED 側の線はプルアップで
- *   3.3V のまま静止し、初期化が失敗する — 実測の症状と完全に一致する。
- *
- *   基板側の定義 (boards/seeed/xiao_ble/xiao_ble-pinctrl.dtsi):
- *     i2c1_default: psels = <NRF_PSEL(TWIM_SDA, 0, 4)>, <NRF_PSEL(TWIM_SCL, 0, 5)>;
+ * ⚠ I2C バス本体 (pinctrl / spi2 無効化 / &i2c1 の周波数・ピン) は
+ *   2026-09-26 に split54tp.dtsi へ移した。ここには OLED ノードだけを置く。
+ *   経緯 (spi2 が D9/D10 を掴んでいた件など) は dtsi と
+ *   split54tp_left.overlay.bak-lpps-20260926 を参照。
  */
-&pinctrl {
-    i2c1_oled_default: i2c1_oled_default {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
-        };
-    };
-
-    i2c1_oled_sleep: i2c1_oled_sleep {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 1, 14)>, <NRF_PSEL(TWIM_SCL, 1, 15)>;
-            low-power-enable;
-        };
-    };
-};
-
-/*
- * ★ SPI2 を無効化する — これが表示不良の根本原因だった (2026-09-08)
- *
- * xiao_ble の基板定義では spi2 が **status = "okay"** で有効になっており、
- * かつ spi2_default のピンが
- *     SPIM_SCK  = P1.13 (D8)
- *     SPIM_MOSI = P1.15 (D10)
- *     SPIM_MISO = P1.14 (D9)
- * となっている。
- *   boards/seeed/xiao_ble/xiao_ble_common.dtsi
- *   boards/seeed/xiao_ble/xiao_ble-pinctrl.dtsi
- *
- * つまり **D9 / D10 は既に SPI2 が掴んでいる**。
- * nRF のピンは1つのペリフェラルにしか接続できないため、
- * 同じピンを I2C1 に割り当てても信号が出ず、
- *   <err> ssd1306: Failed to initialize device!
- * になっていた。
- *
- * XIAO 上のフラッシュは QSPI（別ペリフェラル）なので SPI2 は使っていない。
- * 無効化して問題ない。
- *
- * ⚠ rev.6 で D8 (P1.13) を使う場合も、この競合を思い出すこと。
- */
-&spi2 {
-    status = "disabled";
-};
-
 &i2c1 {
-    compatible = "nordic,nrf-twim";
-    status = "okay";
-    /*
-     * ⚠ 100kHz にしている (2026-09-07)
-     *   ブレッドボード＋ジャンパ線の配線で 400kHz(I2C_BITRATE_FAST) だと、
-     *   初期化の途中で通信が失敗している疑いがある。
-     *   本組み(PCB配線)にしたら FAST へ戻して良い。
-     */
-    clock-frequency = <I2C_BITRATE_STANDARD>;
-    pinctrl-0 = <&i2c1_oled_default>;
-    pinctrl-1 = <&i2c1_oled_sleep>;
-    pinctrl-names = "default", "sleep";
-
     /*
      * ⚠ 2026-09-07: 128x64 での表示が正しく出せなかったため、
      *   いったん **128x32** に落として「配線もドライバも正しい」ことを確定させる。

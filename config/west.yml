@@ -36,10 +36,16 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
+    - name: sekigon-gonnoc
+      url-base: https://github.com/sekigon-gonnoc
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: 641514a97db345f499dd50b0360e594270f008fe
       import: app/west.yml
+    # 2026-09-26 LPPS 導入。master の最新 (2026-03-01 "Update README.md") に固定。
+    - name: zmk-driver-lpps
+      remote: sekigon-gonnoc
+      revision: 7a4a67c3868edbe53fce5b96c5085336705efbd2
   self:
     path: config

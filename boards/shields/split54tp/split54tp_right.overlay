@@ -22,9 +22,14 @@
      *   予見どおりだったので、下の2行を有効化して a/b を入れ替える。
      *   左基板は回転させていないので入れ替えない。これで左右が揃う。
      *   元に戻すには下の2行を削除する (dtsi の a=D7 / b=D8 に戻る)。
+     *
+     * ★ 2026-09-26 rev.6 実機: この入れ替えがあると左右で回転方向が逆になった
+     *   (左 = 一般的なマウスと同じ / 右 = 逆)。rev.6 の右基板は ENC1 を回転実装して
+     *   いないため、入れ替えを外す (dtsi の a=D7 / b=D8 のまま)。
+     *   rev.5 用の入れ替えは split54tp_right.overlay.bak-enc-20260926 に残してある。
      */
-    a-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
-    b-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+    // a-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+    // b-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
 };
 
 /*
@@ -47,6 +52,11 @@
     };
 };
 
+/*
+ * ⚠ 2026-09-26 一時停止: 左スティックがドリフトし続ける (倒しても反応しない)。
+ *   ログで右は x=0 y=0 (z のみ) と確認、ドリフト源は左 (input-split 経由) と特定。
+ *   左センサの半田を直したら status を "okay" に戻す。
+ */
 &lpps_split_listener {
-    status = "okay";
+    status = "disabled";
 };

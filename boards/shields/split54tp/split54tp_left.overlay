@@ -70,15 +70,16 @@
     oled: ssd1306@3c {
         compatible = "solomon,ssd1306fb";
         reg = <0x3c>;
+        /* ★ 2026-09-26 PCB 本組みで 128x64 に変更 (com-sequential を外し height/multiplex を 64 行用に)。
+         *   128x32 設定のままだと 64 行パネルでレンガ状の模様になった。 */
         width = <128>;
-        height = <32>;
+        height = <64>;
         segment-offset = <0>;
         page-offset = <0>;
         display-offset = <0>;
-        multiplex-ratio = <31>;
+        multiplex-ratio = <63>;
         segment-remap;
         com-invdir;
-        com-sequential;
         inversion-on;
         prechargep = <0x22>;
     };

@@ -53,6 +53,12 @@
  *
  *   rev.6 では親指キーとメイン列の電気的マッピングを見直すこと (最重要課題)。
  *
+ *   ★ 2026-09-26 rev.6 で解決: 配線割当を見直し、保持キー併用時のゴーストは
+ *     すべて未使用ペアに落ちる (実機で確認)。L1/L2 の &none 退避を撤去し、
+ *     ゴースト対策前 (split54tp.keymap.bak4-20260912) の配置に戻した。
+ *     &bootloader(L2+BSPC) / &studio_unlock(L2+Shift) の位置は bak4 のまま。
+ *     上記の説明は rev.5 の記録として残す。
+ *
  *   ZMK公式: リセット系ビヘイビアは「押した側」にだけ作用する (source-specific)。
  *   そのため左右それぞれにキーが必要。コンボにすると常にセントラル(右)側で
  *   実行されてしまうため、通常のキーとして両側に置いている。
@@ -182,20 +188,21 @@
          *   目安: SCRL_VAL は「毎秒Nクリック」相当。1クリックに 1000/N ms かかる。
          *         SCRL_VAL=80 → 1クリック12.5ms → wait-ms=40 で1ノッチ約3.2クリック。
          *   履歴: 40/40 (約1.6クリック) は「動くが少なすぎる」→ 80 へ (2026-09-03 実機)
+         *         rev.6 (CKW12) で 80/40 は「マウスより1ノッチの移動量が大きい」→ wait-ms 20 へ (2026-09-26)
          *
          * https://zmk.dev/docs/keymaps/behaviors/mouse-emulation
          */
         scroll_dn: scroll_dn {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            wait-ms = <40>;
+            wait-ms = <20>;
             tap-ms = <10>;
             bindings = <&macro_press &msc SCRL_DOWN>, <&macro_release &msc SCRL_DOWN>;
         };
         scroll_up: scroll_up {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            wait-ms = <40>;
+            wait-ms = <20>;
             tap-ms = <10>;
             bindings = <&macro_press &msc SCRL_UP>, <&macro_release &msc SCRL_UP>;
         };
@@ -234,11 +241,11 @@
         lower_layer {
             display-name = "Mouse/Nav (左手)";
             bindings = <
-&kp GRAVE      &none          &bt_2          &bt_3          &bt_4          &none            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 左: 1/5 はゴースト対象 → &none (bt_1 は TAB へ。記号は右半身)
-&bt_1          &none          &kp BSLH       &kp UP         &mkp LCLK      &none            &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: TAB=BLE1 W=\ E=↑ R=左クリック / Q,T は &none
-&trans         &none          &kp LEFT       &kp DOWN       &kp RIGHT      &none            &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ / A,G は &none
-&trans         &none          &mkp MCLK      &trans         &mkp RCLK      &none            &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: X=中クリック V=右クリック / Z,B は &none
-                                               &kp LGUI       &none          &trans           &trans         &trans         &kp LGUI   // thumb: 左中央は左内側親指のゴースト対象 → &none
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
+&trans         &trans         &trans         &kp UP         &trans         &mkp LCLK        &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: E=↑ T=左クリック   /  右: F1-F6
+&trans         &trans         &kp LEFT       &kp DOWN       &kp RIGHT      &mkp RCLK        &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ G=右クリック / 右: ナビ
+&trans         &trans         &trans         &trans         &trans         &mkp MCLK        &kp F7         &kp F8         &kp F9         &kp F10        &kp INS        &kp PSCRN   // 左: B=中クリック       /  右: F7-F10
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 下位レイヤーではホイールを音量に
@@ -248,11 +255,11 @@
         raise_layer {
             display-name = "Mouse/Sym (右手)";
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &none          &kp UNDER      &kp PLUS       &kp LBRC       &none          &kp PIPE   // 左はゴーストなし。右: 6/0 はゴースト対象 → &none (' と ] は L1 で)
-&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans           &none          &mkp LCLK      &kp UP         &kp HOME       &none          &bootloader   // 左: R=左をブートローダへ / 右: U=左クリック BSPC=右をブートローダへ / Y,P は &none
-&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &none          &kp LEFT       &kp DOWN       &kp RIGHT      &none          &mkp RCLK   // 右: J← K↓ L→ ENT=右クリック / H,; は &none
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &none          &kp PSCRN      &kp F12        &kp INS        &none          &studio_unlock   // 右: M=PrtSc ,=F12 .=Ins RShift=Studio解除 / N,/ は &none
-                                               &kp LGUI       &trans         &trans           &trans         &none          &kp LGUI   // thumb: 右中央は右内側親指のゴースト対象 → &none
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &bootloader   // 左: R=左をブートローダへ / 右: BSPC=右をブートローダへ(ゴースト非対象)
+&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
+&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &kp F12        &kp INS        &kp PSCRN      &studio_unlock   // 左: Shift位置=Studio解除 / 右: Shift位置=Studio解除(ゴースト非対象) ,=F12
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 上位レイヤーではホイールを水平スクロールに

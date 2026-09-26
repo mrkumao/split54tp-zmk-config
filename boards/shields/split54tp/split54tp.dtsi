@@ -174,6 +174,9 @@ RC(2,1)                                             RC(2,8)
      *
      * ⚠ steps / triggers-per-rotation は THQWGD001C の実分解能が未確認。
      *   実機で回してみて、1ノッチあたりのスクロール量が合うよう調整すること。
+     * ★ 2026-09-26 rev.6 (CKW12): steps 30 では 1ノッチで2回トリガした (ログで確認)。
+     *   steps を 60 にして 1ノッチ=1トリガにする (triggers-per-rotation は 15 のまま)。
+     *   CKW12 の公式資料にパルス数の記載はない。多すぎ/少なすぎなら 30/120 を試す。
      *
      * ⚠ 右基板は ENC1 を物理的に180度回転させて実装している (PWR1/RST1との干渉回避)。
      *   そのため右だけ回転方向が逆になる可能性がある。
@@ -183,7 +186,7 @@ RC(2,1)                                             RC(2,8)
         compatible = "alps,ec11";
         a-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
         b-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
-        steps = <30>;
+        steps = <60>;
         status = "disabled";
     };
 
@@ -191,7 +194,7 @@ RC(2,1)                                             RC(2,8)
         compatible = "alps,ec11";
         a-gpios = <&xiao_d 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
         b-gpios = <&xiao_d 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
-        steps = <30>;
+        steps = <60>;
         status = "disabled";
     };
 

@@ -320,8 +320,9 @@ RC(2,1)                                             RC(2,8)
      *   Zephyr のバインディング説明に「SSD1306 では必須」と明記されている。
      *   https://github.com/zephyrproject-rtos/zephyr/blob/v4.1.0/dts/bindings/i2c/nordic,nrf-twim.yaml
      */
-    zephyr,concat-buf-size = <2048>;
-    zephyr,flash-buf-max-size = <2048>;
+    /* 2048 では砂嵐の様子が変わっただけだった (2026-09-27)。1画素1バイト扱いでも足りる 8192 で試す */
+    zephyr,concat-buf-size = <8192>;
+    zephyr,flash-buf-max-size = <8192>;
 
     /*
      * LPPS (sekigon-gonnoc)。irq-gpios はドライバ README どおり GPIO_PULL_UP のみ。

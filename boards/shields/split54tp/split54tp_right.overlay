@@ -60,3 +60,33 @@
 &lpps_split_listener {
     status = "disabled";
 };
+
+/*
+ * ---- 状態モニタ用 OLED (右 = セントラル) ---- 2026-09-26 追加 (試験)
+ *   秋月 112031 / 0.96インチ 128x64 / SSD1315 / I2C 0x3C / D9=SDA D10=SCL
+ *   I2C バス本体は split54tp.dtsi。ここには OLED ノードだけを置く。
+ *   セントラルは出力先 (USB/BLE と接続先番号)・レイヤー・電池を表示できる。
+ *   左 (ペリフェラル) で表示ありにすると左が機能しなくなる件の切り分けも兼ねる。
+ */
+/ {
+    chosen {
+        zephyr,display = &oled;
+    };
+};
+
+&i2c1 {
+    oled: ssd1306@3c {
+        compatible = "solomon,ssd1306fb";
+        reg = <0x3c>;
+        width = <128>;
+        height = <64>;
+        segment-offset = <0>;
+        page-offset = <0>;
+        display-offset = <0>;
+        multiplex-ratio = <63>;
+        segment-remap;
+        com-invdir;
+        inversion-on;
+        prechargep = <0x22>;
+    };
+};

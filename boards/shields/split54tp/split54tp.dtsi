@@ -312,6 +312,18 @@ RC(2,1)                                             RC(2,8)
     pinctrl-names = "default", "sleep";
 
     /*
+     * ★ 2026-09-27 OLED の砂嵐 / 左が機能しなくなる件の本命対策。
+     *   SSD1306 ドライバは「制御バイト＋画像データ」を連結して 1 回で送る必要があり、
+     *   nRF の TWIM ドライバは連結用バッファ (既定 16 バイト) を使う。
+     *   16 バイトでは画像データ (最大 128x64/8 = 1024 バイト) の送信が必ず失敗する
+     *   → 画面は ON になるが中身は砂嵐のまま、になる。
+     *   Zephyr のバインディング説明に「SSD1306 では必須」と明記されている。
+     *   https://github.com/zephyrproject-rtos/zephyr/blob/v4.1.0/dts/bindings/i2c/nordic,nrf-twim.yaml
+     */
+    zephyr,concat-buf-size = <2048>;
+    zephyr,flash-buf-max-size = <2048>;
+
+    /*
      * LPPS (sekigon-gonnoc)。irq-gpios はドライバ README どおり GPIO_PULL_UP のみ。
      * ドライバは生の値で「0 = MOTION アクティブ」と判定するので ACTIVE_LOW を付けない。
      */

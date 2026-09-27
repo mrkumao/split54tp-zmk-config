@@ -84,8 +84,8 @@
         page-offset = <0>;
         display-offset = <0>;
         multiplex-ratio = <63>;
-        segment-remap;
-        com-invdir;
+        /* ★ 2026-09-27 実装向き (端子が手前) に合わせて 180° 回転。
+         *   segment-remap と com-invdir を外すと左右・上下が同時に反転する。 */
         inversion-on;
         prechargep = <0x22>;
     };

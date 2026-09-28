@@ -120,6 +120,16 @@
         compatible = "zmk,kscan-gpio-charlieplex";
         wakeup-source;
 
+        /*
+         * ★ 2026-09-28 「押して1回・離して1回」入力される件 (左の 3 など)。
+         *   離すときの接点のバタつき (release bounce) が既定 5ms より長いと、
+         *   離した直後にもう一度「押された」と判定される。
+         *   離す側だけ 15ms に延ばす (押した瞬間の反応速度は変わらない)。
+         *   ハード側 (差し込みの浅さ) を直したら 5ms に戻してよい。
+         *   https://zmk.dev/docs/config/kscan#charlieplex-driver
+         */
+        debounce-release-ms = <15>;
+
         gpios
             = <&xiao_d 0 GPIO_ACTIVE_HIGH>   /* L0 */
             , <&xiao_d 1 GPIO_ACTIVE_HIGH>   /* L1 */

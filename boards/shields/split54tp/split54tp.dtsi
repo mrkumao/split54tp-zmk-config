@@ -12,6 +12,11 @@
  *   エンコーダプッシュ: RC(2,1)
  *   → 28ペア/半身。右半身は col-offset 7
  *
+ * ★ rev.7 (2026-10-25): キーの割当は rev.6 と同じ。rev.7 の左右の基板 (output_rev7_route) の
+ *   S1〜S27・ダイオード・エンコーダのプッシュのネットから RC を抜き出し、map の 56 か所すべて一致を確認。
+ *   rev.7 ではキーのダイオードのカソードが Lx ではなく Lx_K に集まり、BAT54A を通って Lx と割込みピンへ行く
+ *   (keyboard-project/docs/rev7-修正計画.md 項目 O)。RC(drive, sense) の意味は rev.6 と同じ。
+ *
  * ZMK公式の charlieplex ドライバ仕様との整合を 2026-08-24 に検証済み:
  *   「row は常に駆動ピン、column は常に受信ピン」「row==column は除外」
  *   https://zmk.dev/docs/config/kscan
@@ -141,11 +146,17 @@
             ;
 
         /*
-         * interrupt-gpios を設定すると割込みスキャンになり消費電力が大きく下がる。
-         * ただし容量が n(n-1)=42 から (n-1)(n-2)=30 へ減る (使用28なので余裕2)。
-         * 割込みピンには全sense線をダイオードORで接続する必要があり、
-         * かつ空きピンが無いため現状は未使用 (ポーリング動作)。
+         * ★ 2026-10-25 rev.7: 割込みスキャンを有効化 (キーを押したら起きる。待機電力が下がる)。
+         *   割込みピン = P0.10 (XIAO 裏面の NFC2 → リード線 → 基板の中継パッド 19 = CPLEX_IRQ)。
+         *   線ごとの BAT54A (共通アノード = Lx_K / K1 = Lx / K2 = CPLEX_IRQ) で全 sense 線をダイオード OR している。
+         *   待機中は 7 本の線をすべてハイにし、どれかのキーを押すと CPLEX_IRQ がハイになる。
+         *   フラグは公式どおり (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)。https://zmk.dev/docs/config/kscan
+         *   公式の「(n-1)(n-2) に減る」は割込みピンを 7 本の線の 1 本と兼ねる場合の話。
+         *   split54tp は 7 本の線とは別の P0.10 を使うので、容量は 42 のまま (使用 28)。
+         *   P0.10 は低周波 I/O 専用 (10kHz まで) だが、割込み入力は実質 DC なので問題ない。
+         *   ⚠ rev.6 の基板にこのファームを書かないこと (rev.6 は割込みの回路がない)。
          */
+        interrupt-gpios = <&gpio0 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
     };
 
     /* 7行(drive) x 14列(sense: 0-6=左, 7-13=右) / 56キーポジション */
@@ -220,7 +231,7 @@ RC(2,1)                                             RC(2,8)
      *   ドライバ  : https://github.com/sekigon-gonnoc/zmk-driver-lpps
      *   ZMK 公式の split パターン: https://zmk.dev/docs/hardware-integration/pointing
      *
-     * 配線 (rev.6):
+     * 配線 (rev.6 / rev.7 共通):
      *   J1 (FPC 6P) … 1 VCC / 2 MOTION / 3 NC / 4 SCL / 5 SDA / 6 GND
      *   SCL/SDA = D10 / D9 (I2C 共用バス, 4.7kΩ R1/R2)。OLED(0x3C) と LPPS(0x57) が同居
      *   MOTION  = NFC1 (P0.09) … XIAO 裏面パッドからリード線 (中継パッド 18)
@@ -316,7 +327,13 @@ RC(2,1)                                             RC(2,8)
      *   400kHz では生データが常に 00 00 0x (X/Y 常に0、Z も 3〜10 しか動かない)。
      *   100kHz では失敗は多いが X/Y に値が出ていた (DF E0 00 / AC AC 2A)。
      */
-    clock-frequency = <I2C_BITRATE_STANDARD>;
+    /*
+     * ★ 2026-10-25 rev.7: 400kHz (FAST) に戻す。
+     *   rev.6 の不調の原因は FFC の接触不良とセンサの故障だった (LPPS は正常) と後で分かったので、
+     *   上の 100kHz での比較は原因の切り分けになっていなかった。ドライバの作者の推奨は 400kHz。
+     *   OLED / LPPS が読めないなどの不具合が出たら、まず I2C_BITRATE_STANDARD に戻して比べる。
+     */
+    clock-frequency = <I2C_BITRATE_FAST>;
     pinctrl-0 = <&i2c1_oled_default>;
     pinctrl-1 = <&i2c1_oled_sleep>;
     pinctrl-names = "default", "sleep";

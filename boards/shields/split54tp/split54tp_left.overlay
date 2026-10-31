@@ -12,7 +12,7 @@
  * ---- 左側ポインティングスティック ---- 2026-09-26 有効化
  * lpps ノード本体は split54tp.dtsi の &i2c1 にある。左はペリフェラルなので
  * input-split に紐付けてセントラル(右)へ転送する。
- * 軸の向きが違ったら、ここに input-processors を足す (右 overlay の説明を参照)。
+ * 軸の向きの補正は、右 overlay の &lpps_split_listener に入っている (2026-10-31)。ここには足さない。
  */
 &lpps_split {
     device = <&lpps>;

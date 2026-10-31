@@ -4,6 +4,8 @@
  */
 
 #include "split54tp.dtsi"
+#include <input/processors.dtsi>
+#include <dt-bindings/zmk/input_transform.h>
 
 /* 右半身は transform の列 7-13 を使用 */
 &default_transform {
@@ -39,7 +41,7 @@
  *   ・左の LPPS (input-split 経由) → lpps_split_listener
  *
  * ★ 軸の向き: 実機で「上に倒したのに下へ動く」等があれば、
- *   該当する listener に input-processors を足す (左は左 overlay の &lpps_split に足す)。
+ *   該当する listener に input-processors を足す (左は &lpps_split_listener に足す)。
  *     #include <dt-bindings/zmk/input_transform.h>
  *     input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT)>;
  *   使える値: INPUT_TRANSFORM_XY_SWAP / _X_INVERT / _Y_INVERT
@@ -49,6 +51,7 @@
     lpps_listener: lpps_listener {
         compatible = "zmk,input-listener";
         device = <&lpps>;
+        input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT)>;
     };
 };
 
@@ -61,6 +64,7 @@
  */
 &lpps_split_listener {
     status = "okay";
+    input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT)>;
 };
 
 /*
@@ -68,6 +72,10 @@
  *   rev.7 は LPPS のコネクタを −Y 向きにした (rev.6 から 180° 回した、keyboard-project/docs/rev7-修正計画.md §3-1)。
  *   ただし rev.6 でも正しい向きは確かめられていない (センサの故障のため) ので、補正の値は実機で決める。
  *   センサが届いたら、倒した向きとカーソルの動きを見て、上の説明の input-processors を足す。
+ *
+ * ★ 2026-10-31 実機 (基板に付ける前。軸を自分に向け、コネクタを手前にして確認): 上下はそのまま、左右が逆 → X だけ反転。
+ *   左も LPPS を同じ向きに付ける (裏のシルクの「FPC」は左右とも手前) ので、左の受信 (&lpps_split_listener) にも同じ補正を入れた。
+ *   左は実機で未確認。ここはセントラルで効くので、左のファームを書き直さなくてよい。
  */
 
 /*

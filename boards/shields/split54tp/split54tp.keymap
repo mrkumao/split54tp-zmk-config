@@ -268,7 +268,7 @@
 &kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
 &kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
                            &kp LALT  &kp SPACE  &mo LOWER     &mo RAISE  &kp SPACE  &kp RALT
-&mkp MCLK                                                                     &mkp MCLK
+&mkp LCLK                                                                     &mkp LCLK   // ホイールのプッシュ = 左クリック (2026-11-01)
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
         };
@@ -309,7 +309,7 @@
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
 &trans         &trans         &bootloader    &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: X=左をブートローダへ B=PgDn  /  右: F6-F10 (2026-11-01)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
-&mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
+&mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
             // 下位レイヤーではホイールを音量に
             sensor-bindings = <&rot_kp C_VOL_UP C_VOL_DN &rot_kp C_VOL_UP C_VOL_DN>;
@@ -323,7 +323,7 @@
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
 &trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &bootloader    &ps_calib      &trans   // 左: F6-F10 / 右: N=PgDn .=右をブートローダへ /=TP校正 (2026-11-01)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
-&mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
+&mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
             // 上位レイヤーではホイールを水平スクロールに
             sensor-bindings = <&rot_kp PG_DN PG_UP &rot_kp PG_DN PG_UP>;

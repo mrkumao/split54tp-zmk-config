@@ -3,7 +3,7 @@
  * 54キー + ホイールエンコーダのプッシュ2 = 56ポジション
  *
  *  ┌─────┬─────┬─────┬─────┬─────┬─────┐   ┌─────┬─────┬─────┬─────┬─────┬─────┐
- *  │ ESC │  1  │  2  │  3  │  4  │  5  │   │  6  │  7  │  8  │  9  │  0  │ DEL │
+ *  │ ESC │  1  │  2  │  3  │  4  │  5  │   │  6  │  7  │  8  │  9  │  0  │  -  │  (2026-11-01: DEL → -。DEL は L1 + BS)
  *  ├─────┼─────┼─────┼─────┼─────┼─────┤   ├─────┼─────┼─────┼─────┼─────┼─────┤
  *  │ TAB │  Q  │  W  │  E  │  R  │  T  │   │  Y  │  U  │  I  │  O  │  P  │ BS  │
  *  ├─────┼─────┼─────┼─────┼─────┼─────┤ ◉ ├─────┼─────┼─────┼─────┼─────┼─────┤  ◉=スティック
@@ -90,7 +90,7 @@
 #include <dt-bindings/zmk/modifiers.h>
 
 /*
- * ★ 2026-10-31 LPPS の強制キャリブレーション (L2 + . に割当)
+ * ★ 2026-10-31 LPPS の強制キャリブレーション (L2 + / に割当。2026-11-01 に . から移動)
  *   押すと、次に MOTION が来たときにドライバがレジスタ 0x04 に 1 を書く。そのときにスティックに触っていないこと。
  *   セントラル (右) で実行されるので、効くのは右の LPPS だけ。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
@@ -111,7 +111,7 @@
 #define BASE  0   // Windows / 会社PC (デフォルト)
 #define LOWER 1
 #define RAISE 2
-#define MAC   3   // Mac      : CTRL <-> GUI(CMD) を入れ替え
+#define MAC   3   // Mac      : 左 CTRL の位置 → CMD、左 Space の長押し → CTRL
 #define IPAD  4   // iPad     : Mac と同じ配列 (将来分けられるよう別レイヤーにしてある)
 
 / {
@@ -178,6 +178,23 @@
         };
 
         /*
+         * ★ 2026-11-01 Mac / iPad の左 Space: 短く押すと Space、約 0.2 秒以上押すと CTRL
+         *   Mac / iPad レイヤーは左 CTRL の位置が CMD になり CTRL が無くなるので、ここに置く。
+         *   プロファイルの切り替えも、左 Space の長押し + L2 + 1〜4 でできる（L1 は同じ親指なので押せない）。
+         *   tap-preferred: 判定は時間だけで決まる。他のキーを一緒に押しても CTRL に早変わりしない。
+         *   quick-tap-ms: 短く押してすぐ押し直すと Space のまま（押し続ければ連続入力）。
+         *   https://zmk.dev/docs/keymaps/behaviors/hold-tap
+         */
+        ctl_spc: ctl_spc {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <200>;
+            quick-tap-ms = <200>;
+            bindings = <&kp>, <&kp>;
+        };
+
+        /*
          * ホイール回転 → マウススクロール
          *
          * ⚠ 2026-09-03 実機で判明: bindings に &msc を直接書くと「全く動かない」。
@@ -236,7 +253,7 @@
         default_layer {
             display-name = "Base";
             bindings = <
-&kp ESC    &kp N1  &kp N2  &kp N3  &kp N4  &kp N5        &kp N6  &kp N7  &kp N8     &kp N9   &kp N0    &kp DEL
+&kp ESC    &kp N1  &kp N2  &kp N3  &kp N4  &kp N5        &kp N6  &kp N7  &kp N8     &kp N9   &kp N0    &kp MINUS
 &kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T         &kp Y   &kp U   &kp I      &kp O    &kp P     &kp BSPC
 &kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
 &kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
@@ -250,9 +267,9 @@
             display-name = "Mouse/Nav (左手)";
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
-&trans         &trans         &trans         &kp UP         &trans         &mkp LCLK        &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6   // 左: E=↑ T=左クリック   /  右: F1-F6
-&trans         &trans         &kp LEFT       &kp DOWN       &kp RIGHT      &mkp RCLK        &kp HOME       &kp PG_DN      &kp PG_UP      &kp END        &kp F11        &kp F12   // 左: S← D↓ F→ G=右クリック / 右: ナビ
-&trans         &trans         &trans         &trans         &trans         &mkp MCLK        &kp F7         &kp F8         &kp F9         &kp F10        &none          &kp PSCRN   // 左: B=中クリック       /  右: F7-F10 (Ins は誤爆防止で &none。2026-09-26)
+&trans         &trans         &mkp LCLK      &kp UP         &mkp RCLK      &trans           &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: W=左クリック E=↑ R=右クリック  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
+&trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
+&trans         &trans         &trans         &trans         &kp F11        &kp F12          &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: V=F11 B=F12  /  右: F6-F10 (2026-11-01)
                                                &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
@@ -264,9 +281,9 @@
             display-name = "Mouse/Sym (右手)";
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &mkp LCLK      &mkp MCLK      &kp UP         &kp HOME       &kp END        &bootloader   // 左: R=左をブートローダへ / 右: BSPC=右をブートローダへ(ゴースト非対象)
-&kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp F6           &mkp RCLK      &kp LEFT       &kp DOWN       &kp RIGHT      &kp PG_DN      &kp PG_UP   // 左: F1-F6              /  右: H=右クリック J← K↓ L→
-&studio_unlock &kp F7         &kp F8         &kp F9         &kp F10        &kp F11          &trans         &trans         &kp F12        &ps_calib      &kp PSCRN      &studio_unlock   // 左: Shift位置=Studio解除 / 右: Shift位置=Studio解除(ゴースト非対象) ,=F12 (.のIns は誤爆防止で &none。2026-09-26)
+&bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &trans         &mkp LCLK      &kp UP         &mkp RCLK      &trans         &bootloader   // 左: R=左をブートローダへ / 右: U=左クリック I=↑ O=右クリック BSPC=右をブートローダへ(ゴースト非対象)
+&trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
+&studio_unlock &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp F11        &kp F12        &trans         &trans         &ps_calib      &studio_unlock   // 左: Shift位置=Studio解除 F6-F10 / 右: N=F11 M=F12 /=TP校正 Shift位置=Studio解除(ゴースト非対象)
                                                &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
@@ -283,13 +300,13 @@
          */
         mac_layer {
             display-name = "Mac";
-            /* Macの修飾キー: 物理CTRL→CMD / 物理GUI→CTRL。他は &trans でレイヤー0を透過 */
+            /* Macの修飾キー: 左CTRLの位置→CMD / 左Spaceの長押し→CTRL。他は &trans でレイヤー0を透過 */
             bindings = <
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
             &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
-            &trans    &trans    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。Cmd は小指 CTRL 位置
+            &trans    &ctl_spc LCTRL SPACE    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。左Space の長押し = CTRL
             &trans    &trans      // ホイールのプッシュ
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
@@ -303,7 +320,7 @@
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
             &kp LGUI  &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home : 左CTRLの位置 → CMD(GUI)
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
-            &trans    &trans    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。Cmd は小指 CTRL 位置
+            &trans    &ctl_spc LCTRL SPACE    &trans    &trans    &trans    &trans      // thumb: 外側は LALT(=Opt) のまま透過。左Space の長押し = CTRL
             &trans    &trans      // ホイールのプッシュ
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;

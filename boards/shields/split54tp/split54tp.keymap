@@ -270,7 +270,7 @@
 &trans         &trans         &mkp LCLK      &kp UP         &mkp RCLK      &trans           &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: W=左クリック E=↑ R=右クリック  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
 &trans         &trans         &trans         &trans         &kp F11        &kp F12          &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: V=F11 B=F12  /  右: F6-F10 (2026-11-01)
-                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI (2026-11-01)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 下位レイヤーではホイールを音量に
@@ -284,7 +284,7 @@
 &bt BT_CLR     &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &trans         &mkp LCLK      &kp UP         &mkp RCLK      &trans         &bootloader   // 左: R=左をブートローダへ / 右: U=左クリック I=↑ O=右クリック BSPC=右をブートローダへ(ゴースト非対象)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
 &studio_unlock &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp F11        &kp F12        &trans         &trans         &ps_calib      &studio_unlock   // 左: Shift位置=Studio解除 F6-F10 / 右: N=F11 M=F12 /=TP校正 Shift位置=Studio解除(ゴースト非対象)
-                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp LGUI   // thumb: 外側=GUI(Win/Cmd)
+                                               &kp LGUI       &trans         &trans           &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI (2026-11-01)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 上位レイヤーではホイールを水平スクロールに

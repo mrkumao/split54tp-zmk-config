@@ -17,8 +17,8 @@
  * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
  *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
  *   変更するには、まず &studio_unlock を押してロックを解除します。
- *     L2 + 左Shift位置 … 左半身
- *     L2 + 右Shift位置 … 右半身  (2026-09-12 変更。M はゴーストで使えない。下記★参照)
+ *     L2 + Tab位置 … 左半身  (2026-11-01 変更)
+ *     L2 + BS位置  … 右半身  (2026-11-01 変更)
  *   ⚠ 切断するか、Studio上で一定時間操作しないと再びロックされる。
  *     https://zmk.dev/docs/keymaps/behaviors/studio-unlock
  *
@@ -26,9 +26,12 @@
  *     戻すには Studio の "Restore Stock Settings" を実行してください。
  *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
  *
- * ★ ファームウェア書き換え用のキー (2026-08-31 追加 / 2026-09-12 右を変更)
- *     L2 + R    (左手) → 左半身をブートローダへ
- *     L2 + BSPC (右手) → 右半身をブートローダへ
+ * ★ ファームウェア書き換え用のキー (2026-08-31 追加 / 2026-11-01 左右とも変更)
+ *     L1 + X   (左手だけ) → 左半身をブートローダへ
+ *     L2 + .   (右手だけ) → 右半身をブートローダへ
+ *   Shift の位置は L1 / L2 を押したまま Shift + 矢印などで押しやすいので避けた。
+ *   ⚠ キーマップは右で処理するので、左の書き換えにも右の電源と左右の接続が要る。
+ *     https://zmk.dev/docs/features/split-keyboards
 
  * ★★ チャーリープレックスのゴースト (2026-09-12 実機で確定) ★★
  *
@@ -304,7 +307,7 @@
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
 &kp CAPS       &trans         &mkp LCLK      &kp UP         &mkp RCLK      &kp PG_UP        &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: Tab の位置=CapsLock W=左クリック E=↑ R=右クリック T=PgUp  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
-&trans         &trans         &trans         &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: B=PgDn  /  右: F6-F10 (2026-11-01)
+&trans         &trans         &bootloader    &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: X=左をブートローダへ B=PgDn  /  右: F6-F10 (2026-11-01)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
@@ -316,10 +319,10 @@
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&trans         &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bootloader    &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &bootloader   // 左: R=左をブートローダへ / 右: Y=PgUp U=左クリック I=↑ O=右クリック BSPC=右をブートローダへ(ゴースト非対象)
+&studio_unlock &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 R=BT消去 / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
-&studio_unlock &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &trans         &ps_calib      &studio_unlock   // 左: Shift位置=Studio解除 F6-F10 / 右: N=PgDn /=TP校正 Shift位置=Studio解除(ゴースト非対象)
-                                               &kp LGUI       &kp F11        &kp F12          &trans         &bt BT_CLR     &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 / 右Space=BT消去(Tab の位置から移動) (2026-11-01)
+&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &bootloader    &ps_calib      &trans   // 左: F6-F10 / 右: N=PgDn .=右をブートローダへ /=TP校正 (2026-11-01)
+                                               &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
 &mkp MCLK                                                                                             &mkp MCLK   // ホイールのプッシュ
             >;
             // 上位レイヤーではホイールを水平スクロールに

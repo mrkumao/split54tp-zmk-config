@@ -1,0 +1,15 @@
+# split54tp 用 (2026-11-04)
+# スティックの感度 (zmk,input-processor-tp-speed) を 1 段ずつ上げ下げする。
+#   param1: 0 = 下げる / 1 = 上げる / 2 = 既定に戻す
+
+description: Step the speed of a tp-speed input processor
+
+compatible: "zmk,behavior-tp-speed"
+
+include: one_param.yaml
+
+properties:
+  processor:
+    type: phandle
+    required: true
+    description: 対象の zmk,input-processor-tp-speed

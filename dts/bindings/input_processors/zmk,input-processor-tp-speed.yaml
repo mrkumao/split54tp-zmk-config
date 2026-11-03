@@ -1,0 +1,25 @@
+# split54tp 用 (2026-11-04)
+# 倍率を動作中に変えられる scaler。段の番号はフラッシュに保存し、電源を切っても残る。
+#   出力 = 入力 × levels[段] / 100 (端数は track-remainders で次へ繰り越す)
+
+description: Scaler whose level can be changed at runtime (saved to settings)
+
+compatible: "zmk,input-processor-tp-speed"
+
+include: ip_zero_param.yaml
+
+properties:
+  type:
+    type: int
+    required: true
+  codes:
+    type: array
+    required: true
+  levels:
+    type: array
+    required: true
+    description: 各段の倍率 (パーセント)。小さい順に並べる
+  default-level:
+    type: int
+    required: true
+    description: 最初の段 (levels の番号。0 始まり)

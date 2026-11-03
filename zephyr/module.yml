@@ -1,7 +1,13 @@
 # この zmk-config 自体を Zephyr モジュールとして認識させる定義。
 # これが無いと boards/shields/ 配下の自作シールドが見つからない。
 # https://zmk.dev/docs/hardware-integration/new-shield
+#
+# ★ 2026-11-04 自作の behavior / input processor (src/) をビルドするため cmake と kconfig を追加。
+#   dts_root: . は dts/bindings/ (自作の binding) の置き場所にもなっている。
+#   https://zmk.dev/docs/development/module-creation
 build:
+  cmake: .
+  kconfig: Kconfig
   settings:
     board_root: .
     dts_root: .

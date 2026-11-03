@@ -26,12 +26,19 @@
  *     戻すには Studio の "Restore Stock Settings" を実行してください。
  *     以降、このファイルは「初期値」と「Studioで使えるレイヤー枠」を決めるものになります。
  *
- * ★ ファームウェア書き換え用のキー (2026-08-31 追加 / 2026-11-01 左右とも変更)
- *     L1 + X   (左手だけ) → 左半身をブートローダへ
- *     L2 + .   (右手だけ) → 右半身をブートローダへ
- *   Shift の位置は L1 / L2 を押したまま Shift + 矢印などで押しやすいので避けた。
+ * ★ ファームウェア書き換え用のキー (2026-08-31 追加 / 2026-11-01 左右とも変更 / 2026-11-04 設定レイヤーへ移動)
+ *     設定レイヤーの X (左手だけ) → 左半身をブートローダへ
+ *     設定レイヤーの . (右手だけ) → 右半身をブートローダへ
  *   ⚠ キーマップは右で処理するので、左の書き換えにも右の電源と左右の接続が要る。
  *     https://zmk.dev/docs/features/split-keyboards
+ *
+ * ★ 設定レイヤー (2026-11-04 追加。下の settings_layer)
+ *   書き換え・TP 校正・TP 感度・BT 消去・USB / BT 出力の切り替えをまとめた。
+ *   片側が使えなくても、もう片側だけで入って設定できるように左右に同じものを置いた。
+ *     入る: 左 = L1 + Shift + Esc の位置 / 右 = L2 + Shift + - の位置 (Shift を押していなければ今までどおり ` / |)
+ *     出る: L1 / L2 / 左 Ctrl / Enter のどれかを押す
+ *   入ったままになる (&tog)。ほかのキーは何もしない (&none) ので、文字が打てなければ設定レイヤーにいる。
+ *   OLED のレイヤー名は "Set"。
 
  * ★★ チャーリープレックスのゴースト (2026-09-12 実機で確定) ★★
  *
@@ -97,8 +104,12 @@
  *   押すと、次に MOTION が来たときにドライバがレジスタ 0x04 に 1 を書く。そのときにスティックに触っていないこと。
  *   セントラル (右) で実行されるので、効くのは右の LPPS だけ。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
+ *
+ * ★ 2026-11-04 ドライバの &ps_calib をやめ、自作の &tpcalib (押した側の LPPS を校正) に替えた。
+ *   設定レイヤーの Z (左) / / (右)。中身はドライバと同じ (lpps_request_write) で、実行する半身だけが違う。
+ *   zmk-config の src/behaviors/behavior_tp_calib_local.c。左のファームにも入るので、左も書き直すこと。
+ *   そのため lpps-calibration.dtsi は読み込まない。
  */
-#include <behaviors/lpps-calibration.dtsi>
 
 /*
  * ---- レイヤー構成 ----
@@ -122,6 +133,12 @@
 #define IPAD  2   // iPad     : Mac と同じ配列 (将来分けられるよう別レイヤーにしてある)
 #define LOWER 3
 #define RAISE 4
+#define SETTINGS 5   // 設定レイヤー (2026-11-04)。L1 / L2 より上に置き、入っている間は L1 / L2 より優先する
+
+// &tps_l / &tps_r (TP 感度) の引数 (src/behaviors/behavior_tp_speed.c と合わせる)
+#define TPS_DN  0   // 1 段下げる
+#define TPS_UP  1   // 1 段上げる
+#define TPS_DEF 2   // 既定 (100%) に戻す
 
 / {
     behaviors {
@@ -255,6 +272,57 @@
             #sensor-binding-cells = <2>;
             bindings = <&kp>, <&kp>;
         };
+
+        /*
+         * ★ 2026-11-04 設定レイヤーに入るキー (Shift を押しているときだけ入る)
+         *   左: L1 + Shift + Esc の位置 / 右: L2 + Shift + - の位置
+         *   Shift なしなら今までどおり ` / | を送る。
+         *   L1 + Shift + Esc の位置は今まで ~ だった。~ は L2 + Shift + Esc の位置で打てる。
+         *   L2 + Shift + - の位置は今までも | (Shift を足しても同じ) だった。
+         *   ゴースト: L1 + Shift + Esc は RC(4,0) + RC(0,3) + RC(5,2)。立ちうるのは RC(4,3) で、
+         *   使っていない組み合わせ (右も同じ並び)。
+         *   https://zmk.dev/docs/keymaps/behaviors/mod-morph
+         */
+        set_l: set_l {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp GRAVE>, <&tog SETTINGS>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        set_r: set_r {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp PIPE>, <&tog SETTINGS>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        /*
+         * ★ 2026-11-04 TP 校正 (押した側の LPPS)。ノード名は 8 文字以内 (左で実行させるため)。
+         *   src/behaviors/behavior_tp_calib_local.c
+         */
+        tpcalib: tpcalib {
+            compatible = "zmk,behavior-tp-calib-local";
+            #binding-cells = <0>;
+            display-name = "TP Calibrate";
+        };
+
+        /*
+         * ★ 2026-11-04 TP 感度 (左右別)。&tps_l TPS_DN などで使う。
+         *   段は split54tp.dtsi の tp_speed_l / tp_speed_r (25〜300%、13 段、既定 100%)。
+         *   src/behaviors/behavior_tp_speed.c
+         */
+        tps_l: tps_l {
+            compatible = "zmk,behavior-tp-speed";
+            #binding-cells = <1>;
+            processor = <&tp_speed_l>;
+            display-name = "TP Speed L";
+        };
+        tps_r: tps_r {
+            compatible = "zmk,behavior-tp-speed";
+            #binding-cells = <1>;
+            processor = <&tp_speed_r>;
+            display-name = "TP Speed R";
+        };
     };
 
     keymap {
@@ -304,10 +372,10 @@
         lower_layer {
             display-name = "L1";   // OLED の表示 (2026-11-01)
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |
+&set_l         &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)
 &kp CAPS       &trans         &mkp LCLK      &kp UP         &mkp RCLK      &kp PG_UP        &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: Tab の位置=CapsLock W=左クリック E=↑ R=右クリック T=PgUp  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
-&trans         &trans         &bootloader    &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: X=左をブートローダへ B=PgDn  /  右: F6-F10 (2026-11-01)
+&trans         &trans         &trans         &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: B=PgDn  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
@@ -318,15 +386,42 @@
         raise_layer {
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1と同一)
-&studio_unlock &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 R=BT消去 / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)
+&studio_unlock &trans         &trans         &trans         &trans         &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
-&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &bootloader    &ps_calib      &trans   // 左: F6-F10 / 右: N=PgDn .=右をブートローダへ /=TP校正 (2026-11-01)
+&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &trans         &trans         &trans   // 左: F6-F10 / 右: N=PgDn (2026-11-01)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
             // 上位レイヤーではホイールを水平スクロールに
             sensor-bindings = <&rot_kp PG_DN PG_UP &rot_kp PG_DN PG_UP>;
+        };
+
+        /*
+         * ★ 2026-11-04 設定レイヤー (SETTINGS = 5)
+         *   入る: 左 = L1 + Shift + Esc の位置 / 右 = L2 + Shift + - の位置 (&set_l / &set_r)
+         *   出る: L1 / L2 / 左 Ctrl / Enter (&tog SETTINGS)。入ったままになるので、終わったら必ず出る。
+         *   ほかのキーは &none。文字が打てなければ設定レイヤーにいる (OLED は "Set")。
+         *   片側だけでも使えるよう、左右に同じものを置いた (左のキー = 左に効く / 右のキー = 右に効く)。
+         *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / Z=TP 校正 X=書き換え C=感度を下げる V=感度を上げる
+         *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / /=TP 校正 .=書き換え M=感度を下げる ,=感度を上げる
+         *   Q〜R と P〜U、Z・X と /・. は、同じ指で同じことができるように左右対称にした。
+         *   感度は左右とも「左のキー = 下げる / 右のキー = 上げる」(ユーザー指定)。
+         *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
+         *   書き換え (&bootloader) と TP 校正 (&tpcalib) は押した側の半身に効く。
+         *   TP 校正は、押したあと次にスティックが値を送ったときに行われる。そのときスティックに触らないこと。
+         *   https://zmk.dev/docs/keymaps/behaviors/layers
+         */
+        settings_layer {
+            display-name = "Set";
+            bindings = <
+&none          &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &none
+&none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
+&tog SETTINGS  &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る
+&none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &none            &none          &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none
+                                             &none          &none          &tog SETTINGS    &tog SETTINGS  &none          &none   // L1 / L2 の位置 = 設定レイヤーから出る
+&none                                                                                                 &none   // ホイールのプッシュ
+            >;
         };
 
         /*

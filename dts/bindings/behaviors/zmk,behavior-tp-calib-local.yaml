@@ -1,0 +1,9 @@
+# split54tp 用 (2026-11-04)
+# LPPS の強制キャリブレーションを「キーを押した側」の半身で実行する。
+# ドライバ同梱の &ps_calib はセントラル (右) でしか動かないため、左右で使えるようにした。
+
+description: LPPS calibration on the half where the key was pressed
+
+compatible: "zmk,behavior-tp-calib-local"
+
+include: zero_param.yaml

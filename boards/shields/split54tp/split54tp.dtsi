@@ -24,6 +24,7 @@
 
 #include <dt-bindings/zmk/matrix_transform.h>
 #include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>   /* tp_speed の INPUT_EV_REL など (2026-11-04) */
 #include <physical_layouts.dtsi>
 
 / {
@@ -254,6 +255,36 @@ RC(2,1)                                             RC(2,8)
         compatible = "zmk,input-listener";
         status = "disabled";
         device = <&lpps_split>;
+    };
+
+    /*
+     * ★ 2026-11-04 スティックの感度 (左右別、キーで上げ下げ)
+     *   自作の input processor (zmk-config の src/pointing/input_processor_tp_speed.c)。
+     *   右 overlay で lpps_listener (右) に tp_speed_r、lpps_split_listener (左) に tp_speed_l を付ける。
+     *   キーは設定レイヤーの &tps_l / &tps_r (キーマップ)。
+     *   levels はパーセント。default-level = 6 → 100% (今までと同じ速さ)。
+     *   段は電源を切っても残る (settings の tp_speed/tp_speed_l・tp_speed_r)。
+     *   ここ (左右共通) に置くのは、キーマップの &tps_l / &tps_r が左のビルドでも参照するため。
+     *   左ではドライバをコンパイルしない (CMakeLists.txt) ので、ノードがあるだけで何もしない。
+     */
+    tp_speed_l: tp_speed_l {
+        compatible = "zmk,input-processor-tp-speed";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_REL>;
+        codes = <INPUT_REL_X INPUT_REL_Y>;
+        levels = <25 35 50 60 70 85 100 120 140 170 200 250 300>;
+        default-level = <6>;
+        track-remainders;
+    };
+
+    tp_speed_r: tp_speed_r {
+        compatible = "zmk,input-processor-tp-speed";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_REL>;
+        codes = <INPUT_REL_X INPUT_REL_Y>;
+        levels = <25 35 50 60 70 85 100 120 140 170 200 250 300>;
+        default-level = <6>;
+        track-remainders;
     };
 };
 

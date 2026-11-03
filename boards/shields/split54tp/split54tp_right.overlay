@@ -51,7 +51,8 @@
     lpps_listener: lpps_listener {
         compatible = "zmk,input-listener";
         device = <&lpps>;
-        input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT)>;
+        /* ★ 2026-11-04 &tp_speed_r = 右の感度 (split54tp.dtsi / 設定レイヤーで上げ下げ) */
+        input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
     };
 };
 
@@ -64,7 +65,8 @@
  */
 &lpps_split_listener {
     status = "okay";
-    input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT)>;
+    /* ★ 2026-11-04 &tp_speed_l = 左の感度。左のスティックの分もここ (右) で計算するので、感度だけなら左の書き直しは要らない */
+    input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
 };
 
 /*

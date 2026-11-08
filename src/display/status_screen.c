@@ -12,7 +12,8 @@
  *     左の受け口 "oledsync" (src/behaviors/behavior_oled_sync.c) に 2 つの数を渡す (include/split54tp/status_sync.h)。
  *     変わったときに送るほか、BT がつながったとき (左がつながり直したときを含む) に 3 回送り直す。
  *   ・左 (ペリフェラル) は右から届いた内容を出す。電池 % は左自身のもの。右とつながっていないときは「R ✕」と「----」。
- *     左は USB の給電を知る仕組み (ZMK_USB) が無いので、充電中の ⚡ は出ない。
+ *     USB の給電中 (⚡) は左右とも出す。条件は ZMK 標準の電池の表示 (widgets/battery_status.c) と同じ
+ *     CONFIG_USB_DEVICE_STACK (★ 2026-11-09 修正: 最初は CONFIG_ZMK_USB (右だけ) にしていて、左で ⚡ が出なかった)。
  *   ・接続先の名前は BT のプロファイル番号から決める (キーマップの prof1_mac など: 1 = Mac、2 = Win、3 = iPad、4 = 予備)。
  *     番号と名前の対応を変えたら PROFILE_NAMES も直すこと。
  *   ・Opt / Cmd にするかは「Mac」「iPad」という名前のレイヤーが有効かで決める (キーマップの display-name)。
@@ -92,7 +93,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/split_peripheral_status_changed.h>
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_USB)
+#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 #include <zmk/usb.h>
 #include <zmk/events/usb_conn_state_changed.h>
 #endif
@@ -281,7 +282,7 @@ static struct status_state gather_state(const zmk_event_t *eh) {
     s.battery = (bev != NULL) ? bev->state_of_charge : zmk_battery_state_of_charge();
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_USB)
+#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
     s.usb_powered = zmk_usb_is_powered();
 #endif
 
@@ -679,7 +680,7 @@ ZMK_SUBSCRIPTION(split54tp_status, split54tp_tp_speed_changed);
 #if STATUS_PERIPHERAL
 ZMK_SUBSCRIPTION(split54tp_status, zmk_split_peripheral_status_changed);
 #endif
-#if IS_ENABLED(CONFIG_ZMK_USB)
+#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 ZMK_SUBSCRIPTION(split54tp_status, zmk_usb_conn_state_changed);
 #endif
 #if IS_ENABLED(CONFIG_ZMK_BATTERY_REPORTING)

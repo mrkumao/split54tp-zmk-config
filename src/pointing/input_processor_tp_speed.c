@@ -9,6 +9,10 @@
  *   保存は最後の変更から CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE (既定 60 秒) 後
  *   (フラッシュの書き込み回数を減らすため。ZMK 本体の出力先の保存と同じやり方)。
  *   左右のスティックの受信はどちらもセントラル (右) にあるので、これは右だけで動けばよい。
+ *
+ * ★ 2026-11-08 OLED に段を出すため、今の倍率を読む tp_speed_get_percent() と、
+ *   段が変わったときのイベント split54tp_tp_speed_changed を足した (include/split54tp/tp_speed.h)。
+ *   保存した段を起動時に読み込んだときもイベントを出す (画面が先にできていても正しい値に直るように)。
  */
 
 #define DT_DRV_COMPAT zmk_input_processor_tp_speed
@@ -21,6 +25,8 @@
 #include <zephyr/sys/util.h>
 #include <drivers/input_processor.h>
 
+#include <split54tp/tp_speed.h>
+
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -28,6 +34,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 
 #define TP_SPEED_SETTINGS_ROOT "tp_speed"
+
+ZMK_EVENT_IMPL(split54tp_tp_speed_changed);
 
 struct tp_speed_config {
     uint8_t type;
@@ -112,11 +120,21 @@ int tp_speed_change(const struct device *dev, int step) {
 #if IS_ENABLED(CONFIG_SETTINGS)
         k_work_reschedule(&data->save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
 #endif
+        raise_split54tp_tp_speed_changed(
+            (struct split54tp_tp_speed_changed){.dev = dev, .percent = cfg->levels[level]});
     }
 
     LOG_INF("%s: level %d (%d%%)", dev->name, level, cfg->levels[level]);
 
     return level;
+}
+
+/* 今の倍率 (%)。OLED の画面から読む */
+int tp_speed_get_percent(const struct device *dev) {
+    const struct tp_speed_config *cfg = dev->config;
+    const struct tp_speed_data *data = dev->data;
+
+    return cfg->levels[data->level];
 }
 
 static int tp_speed_init(const struct device *dev) {
@@ -187,6 +205,8 @@ static int tp_speed_settings_set(const char *name, size_t len, settings_read_cb 
         // levels の段数を減らしたあとに古い値が残っていても、範囲外なら使わない
         if (level < cfg->levels_len) {
             data->level = level;
+            raise_split54tp_tp_speed_changed(
+                (struct split54tp_tp_speed_changed){.dev = dev, .percent = cfg->levels[level]});
         }
 
         return 0;

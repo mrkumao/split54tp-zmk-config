@@ -20,6 +20,11 @@
  *   ・修飾キーは左右どちらでも同じ枠が光る。
  *   ・I2C は LPPS と同じ線なので、表示が変わったときだけ書き直す (ふつうの文字のキーでは書かない)。
  *
+ *   ★ 2026-11-09 右: 左とつながっていないとき、大きい文字の右上 (レイヤー名の上、y 12) に「L ✕」を出す。
+ *     右が BT の central 側になっている接続 = 左との接続 (パソコンとの接続では右は peripheral 側) を数えて判断する。
+ *     1 行目は「BT5 ⚙ L✕」(約 57) と電池「⚡100%」(約 38) の間が 33 しかなく CAPS (36) と重なるので、ここに置いた。
+ *     レイヤー名は y 24 → 26 に下げた。
+ *
  *   ★ 2026-11-09 右端の太い白い縦線を直した: TP の行の文字 (UNSCII 8) は高さが 9 ドットで、y 56 に置くと画面の下を
  *     1 ドットはみ出し、画面がスクロールできる扱いになって白黒テーマのスクロールバー (白い太線) が出ていた。
  *     TP の行を y 55 に上げ、画面のスクロールとスクロールバーを止めた。
@@ -164,6 +169,13 @@ static struct status_state remote;
 static bool remote_valid;
 #endif
 
+#if STATUS_SENDS_TO_PERIPHERAL
+/* 右: 左とつながっている数 (右が BT の central 側になっている接続の数) */
+static atomic_t left_links;
+#endif
+
+static void status_refresh(const zmk_event_t *eh);
+
 #if STATUS_CENTRAL
 static bool mac_layer_active(void) {
     for (zmk_keymap_layer_index_t i = 0; i < ZMK_KEYMAP_LAYERS_LEN; i++) {
@@ -232,6 +244,12 @@ static struct status_state gather_state(const zmk_event_t *eh) {
     s.tp_l = (uint16_t)tp_speed_get_percent(tp_dev_l);
     s.tp_r = (uint16_t)tp_speed_get_percent(tp_dev_r);
 #endif
+
+#if STATUS_SENDS_TO_PERIPHERAL
+    s.link_connected = atomic_get(&left_links) > 0;
+#else
+    s.link_connected = true;
+#endif
 #endif /* STATUS_CENTRAL */
 
 #if STATUS_PERIPHERAL
@@ -284,6 +302,7 @@ static lv_obj_t *caps_label;
 static lv_obj_t *battery_label;
 static lv_obj_t *name_label;
 static lv_obj_t *layer_label;
+static lv_obj_t *link_label; /* 右だけ: 左とつながっていないときの「L ✕」 */
 static lv_obj_t *mod_labels[MOD_BOX_COUNT];
 static lv_obj_t *tp_label;
 
@@ -397,6 +416,14 @@ static void render(const struct status_state *s) {
         lv_label_set_text(layer_label, s->layer_name);
     }
 
+    if (link_label != NULL && (all || s->link_connected != shown.link_connected)) {
+        if (s->link_connected) {
+            lv_obj_add_flag(link_label, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_remove_flag(link_label, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
     if (all || s->mods != shown.mods || s->mac_style != shown.mac_style) {
         render_mods(s);
     }
@@ -501,14 +528,41 @@ static void sync_resend_soon(void) {
     k_work_reschedule_for_queue(zmk_display_work_q(), &sync_work, K_MSEC(SYNC_RESEND_FIRST_MS));
 }
 
+/* 右が BT の central 側の接続 = 左との接続 (パソコンとの接続では右は peripheral 側) */
+static bool is_link_to_left(struct bt_conn *conn) {
+    struct bt_conn_info info;
+    return bt_conn_get_info(conn, &info) == 0 && info.role == BT_CONN_ROLE_CENTRAL;
+}
+
+/* 左とのつながりが変わったら画面を直す (ZMK のほかの処理と同じ system work queue で) */
+static void link_refresh_work_cb(struct k_work *work) { status_refresh(NULL); }
+K_WORK_DEFINE(link_refresh_work, link_refresh_work_cb);
+
 static void status_bt_connected(struct bt_conn *conn, uint8_t err) {
-    if (err == 0 && zmk_display_is_initialized()) {
+    if (err != 0) {
+        return;
+    }
+    if (is_link_to_left(conn)) {
+        atomic_inc(&left_links);
+        k_work_submit(&link_refresh_work);
+    }
+    if (zmk_display_is_initialized()) {
         sync_resend_soon();
+    }
+}
+
+static void status_bt_disconnected(struct bt_conn *conn, uint8_t reason) {
+    if (is_link_to_left(conn)) {
+        if (atomic_dec(&left_links) <= 0) {
+            atomic_set(&left_links, 0);
+        }
+        k_work_submit(&link_refresh_work);
     }
 }
 
 BT_CONN_CB_DEFINE(split54tp_status_conn_cb) = {
     .connected = status_bt_connected,
+    .disconnected = status_bt_disconnected,
 };
 
 #endif /* STATUS_SENDS_TO_PERIPHERAL */
@@ -516,8 +570,6 @@ BT_CONN_CB_DEFINE(split54tp_status_conn_cb) = {
 /* ---------------------------------------------------------------- 左: 右から届いた内容 */
 
 #if STATUS_PERIPHERAL
-static void status_refresh(const zmk_event_t *eh);
-
 void split54tp_status_apply_remote(uint32_t param1, uint32_t param2) {
     k_mutex_lock(&remote_mutex, K_FOREVER);
     switch (OLEDSYNC_OP(param1)) {
@@ -677,7 +729,15 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_align(name_label, LV_ALIGN_TOP_LEFT, 0, 13);
 
     layer_label = make_label(screen, &lv_font_montserrat_12);
-    lv_obj_align(layer_label, LV_ALIGN_TOP_RIGHT, 0, 24);
+    lv_obj_align(layer_label, LV_ALIGN_TOP_RIGHT, 0, 26);
+
+#if STATUS_SENDS_TO_PERIPHERAL
+    /* 左とつながっていないときだけ出す (レイヤー名の上。文字は y 15〜23 あたり) */
+    link_label = make_label(screen, &lv_font_montserrat_12);
+    lv_label_set_text(link_label, "L " LV_SYMBOL_CLOSE);
+    lv_obj_align(link_label, LV_ALIGN_TOP_RIGHT, 0, 12);
+    lv_obj_add_flag(link_label, LV_OBJ_FLAG_HIDDEN);
+#endif
 
     /* 修飾キー 4 つ */
     for (int i = 0; i < MOD_BOX_COUNT; i++) {

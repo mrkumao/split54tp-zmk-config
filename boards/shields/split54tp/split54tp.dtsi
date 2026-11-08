@@ -286,6 +286,18 @@ RC(2,1)                                             RC(2,8)
         default-level = <6>;
         track-remainders;
     };
+
+    /*
+     * ★ 2026-11-09 OLED の表示を右から左へ送る受け口 (自作。src/behaviors/behavior_oled_sync.c)
+     *   右 (セントラル) が接続先・レイヤー・修飾キー・Caps Lock・TP の感度を 2 つの数に詰めて、
+     *   ZMK の「左で behavior を動かす」仕組み (zmk_split_central_invoke_behavior) で送る。
+     *   キーには割り当てない。ドライバは左のビルドだけでコンパイルする (CMakeLists.txt)。
+     *   ⚠ 左で動かす behavior のノード名は 8 文字以内 (ZMK_SPLIT_RUN_BEHAVIOR_DEV_LEN = 9) → "oledsync"
+     */
+    oledsync: oledsync {
+        compatible = "zmk,behavior-oled-sync";
+        #binding-cells = <2>;
+    };
 };
 
 /*

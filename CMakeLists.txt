@@ -6,19 +6,23 @@
 # 押した側の LPPS を校正する behavior。ペリフェラル (左) でも実行されるので左右ともコンパイルする
 target_sources_ifdef(CONFIG_SPLIT54TP_TP_CALIB_LOCAL app PRIVATE src/behaviors/behavior_tp_calib_local.c)
 
+# 自作の宣言 (include/split54tp/)。★ 2026-11-09 左の画面でも使うので左右とも
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+
 # 感度の変更はキーマップと左右のスティックの受信があるセントラル (右) だけ
 if ((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-    # ★ 2026-11-08 感度の値とイベントの宣言 (include/split54tp/tp_speed.h) を、感度のコードと画面から読む
-    target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
-
     target_sources_ifdef(CONFIG_SPLIT54TP_TP_SPEED app PRIVATE
         src/pointing/input_processor_tp_speed.c
         src/behaviors/behavior_tp_speed.c
     )
+endif()
 
-    # ★ 2026-11-08 右の OLED の自作の画面 (接続先・レイヤー・修飾キー・Caps Lock・TP の感度)。
-    #   split54tp_right.conf の CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y のときだけ。左は ZMK 標準の画面のまま
-    if (CONFIG_ZMK_DISPLAY AND CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM)
-        target_sources(app PRIVATE src/display/status_screen.c)
+# ★ 2026-11-08 OLED の自作の画面 (接続先・レイヤー・修飾キー・Caps Lock・TP の感度)。
+#   左右の .conf の CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y のときだけ。
+# ★ 2026-11-09 左にも出す。右は自分で状態を集めて左へ送り、左は受け口 (behavior_oled_sync.c) で受ける
+if (CONFIG_ZMK_DISPLAY AND CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM)
+    target_sources(app PRIVATE src/display/status_screen.c)
+    if (CONFIG_ZMK_SPLIT AND NOT CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+        target_sources(app PRIVATE src/behaviors/behavior_oled_sync.c)
     endif()
 endif()

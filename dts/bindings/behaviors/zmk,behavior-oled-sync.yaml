@@ -1,0 +1,9 @@
+# split54tp 用 (2026-11-09)
+# OLED の表示の内容を右 (セントラル) から左 (ペリフェラル) へ送る受け口。キーには割り当てない。
+#   param1 / param2: 表示の内容を詰めた数 (include/split54tp/status_sync.h)
+
+description: Receive the OLED status from the central half
+
+compatible: "zmk,behavior-oled-sync"
+
+include: two_param.yaml

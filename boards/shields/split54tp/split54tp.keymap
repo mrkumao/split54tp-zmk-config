@@ -387,7 +387,7 @@
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)
-&studio_unlock &trans         &trans         &trans         &trans         &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
+&studio_unlock &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 W=左クリック E=中クリック R=右クリック (2026-11-09、L1 の右 U I O と同じ並び) / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
 &trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &trans         &trans         &trans   // 左: F6-F10 / 右: N=PgDn (2026-11-01)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
@@ -403,8 +403,10 @@
          *   出る: L1 / L2 / 左 Ctrl / Enter (&tog SETTINGS)。入ったままになるので、終わったら必ず出る。
          *   ほかのキーは &none。文字が打てなければ設定レイヤーにいる (OLED は "Set")。
          *   片側だけでも使えるよう、左右に同じものを置いた (左のキー = 左に効く / 右のキー = 右に効く)。
-         *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / Z=TP 校正 X=書き換え C=感度を下げる V=感度を上げる
-         *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / /=TP 校正 .=書き換え M=感度を下げる ,=感度を上げる
+         *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / Z=TP 校正 X=書き換え C=感度を下げる V=感度を上げる B=感度を既定に戻す
+         *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / /=TP 校正 .=書き換え M=感度を下げる ,=感度を上げる N=感度を既定に戻す
+         *   ★ 2026-11-09 B / N (ホイールの隣) に「感度を既定 (100%) に戻す」(&tps_l / &tps_r TPS_DEF) を置いた (ユーザー指定)。
+         *     ゴースト (計算): B + Esc → C (左の感度を下げる)、N + - → , (右の感度を上げる) が立ちうる。書き換え・BT 消去には立たない。
          *   Q〜R と P〜U、Z・X と /・. は、同じ指で同じことができるように左右対称にした。
          *   感度は左右とも「左のキー = 下げる / 右のキー = 上げる」(ユーザー指定)。
          *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
@@ -418,7 +420,7 @@
 &none          &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &none
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
 &tog SETTINGS  &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る
-&none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &none            &none          &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none
+&none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &tps_l TPS_DEF   &tps_r TPS_DEF &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none   // B / N (ホイールの隣) = 感度を既定 (100%) に戻す (2026-11-09)
                                              &none          &none          &tog SETTINGS    &tog SETTINGS  &none          &none   // L1 / L2 の位置 = 設定レイヤーから出る
 &none                                                                                                 &none   // ホイールのプッシュ
             >;

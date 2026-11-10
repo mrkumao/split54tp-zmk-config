@@ -1,0 +1,9 @@
+# split54tp 用 (2026-11-11)
+# TP 復旧のキー (試し)。押した側の LPPS に、ドライバと同じ読み取り (3 バイト + バスを閉じる 1 バイト) を送り、
+# 結果を押した側の OLED に出す。src/behaviors/behavior_tp_fix.c
+
+description: Re-read the LPPS on the half where the key was pressed (recovery test)
+
+compatible: "zmk,behavior-tp-fix"
+
+include: zero_param.yaml

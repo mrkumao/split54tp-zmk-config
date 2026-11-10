@@ -30,6 +30,11 @@
  *     1 ドットはみ出し、画面がスクロールできる扱いになって白黒テーマのスクロールバー (白い太線) が出ていた。
  *     TP の行を y 55 に上げ、画面のスクロールとスクロールバーを止めた。
  *
+ *   ★ 2026-11-11 TP 復旧のキー (src/behaviors/behavior_tp_fix.c、設定レイヤーの F / J) を押すと、押した側の
+ *     TP の行に結果を 10 秒出す: 「FIX 前>後 ok」または「FIX 前>後 読み取り バスを閉じる」(エラー番号)。
+ *     前 / 後 = 読み取りの前後の MOTION の線 (L = Low = LPPS が「読んで」と言っている / H = High / ? = 読めない)。
+ *     1 行 16 文字 (UNSCII 8 で 128 ドット) を超えないように切る。この表示は左へは送らない (押した側だけ)。
+ *
  *   作り方は ZMK 標準の画面 (app/src/display/status_screen.c と widgets/) と同じ:
  *   ZMK のイベントで状態を集め、表示の作業は表示専用のスレッド (zmk_display_work_q) で行う。
  *   https://github.com/zmkfirmware/zmk/tree/main/app/src/display
@@ -115,6 +120,13 @@ static const struct device *const tp_dev_l = DEVICE_DT_GET(DT_NODELABEL(tp_speed
 static const struct device *const tp_dev_r = DEVICE_DT_GET(DT_NODELABEL(tp_speed_r));
 #endif
 
+/* TP 復旧のキー (2026-11-11)。押した側で動き、結果をイベントで知らせる */
+#if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
+#include <split54tp/tp_fix.h>
+#endif
+#define TP_LINE_CHARS 16      /* TP の行に出せる文字数 (UNSCII 8 は 1 文字 8 ドット × 16 = 128) */
+#define TP_FIX_SHOW_MS 10000 /* TP 復旧の結果を出しておく時間 */
+
 /* BT のプロファイル番号 (0 から) → 大きく出す名前。キーマップの prof1_mac〜prof4_spare と合わせる */
 static const char *const PROFILE_NAMES[] = {"Mac", "Win", "iPad", "Spare"};
 
@@ -147,6 +159,9 @@ struct status_state {
     /* 左だけ */
     bool link_connected; /* 右とつながっている */
     bool remote_valid;   /* 右から内容が届いている */
+    /* 自分の: TP 復旧のキーの結果 (出している間だけ fix_active) */
+    bool fix_active;
+    char fix_text[TP_LINE_CHARS + 1];
 };
 
 /* 右から左へ送る項目が同じか */
@@ -160,7 +175,8 @@ static bool shared_equal(const struct status_state *a, const struct status_state
 static bool state_equal(const struct status_state *a, const struct status_state *b) {
     return shared_equal(a, b) && strcmp(a->layer_name, b->layer_name) == 0 &&
            a->battery == b->battery && a->usb_powered == b->usb_powered &&
-           a->link_connected == b->link_connected && a->remote_valid == b->remote_valid;
+           a->link_connected == b->link_connected && a->remote_valid == b->remote_valid &&
+           a->fix_active == b->fix_active && strcmp(a->fix_text, b->fix_text) == 0;
 }
 
 #if STATUS_PERIPHERAL
@@ -176,6 +192,44 @@ static atomic_t left_links;
 #endif
 
 static void status_refresh(const zmk_event_t *eh);
+
+/* TP 復旧のキーの結果 (押した側の画面にだけ、TP_FIX_SHOW_MS の間出す) */
+K_MUTEX_DEFINE(fix_mutex);
+static bool fix_active;
+static char fix_text[TP_LINE_CHARS + 1];
+
+#if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
+static void fix_clear_work_cb(struct k_work *work) {
+    k_mutex_lock(&fix_mutex, K_FOREVER);
+    fix_active = false;
+    k_mutex_unlock(&fix_mutex);
+    status_refresh(NULL);
+}
+
+K_WORK_DELAYABLE_DEFINE(fix_clear_work, fix_clear_work_cb);
+
+static char motion_char(int8_t level) { return (level < 0) ? '?' : (level ? 'H' : 'L'); }
+
+/* 例: "FIX L>H ok" / "FIX H>H -5 -5" (16 文字で切る) */
+static void fix_store(const struct split54tp_tp_fix_done *f) {
+    char text[32];
+    if (f->read_ret == 0 && f->close_ret == 0) {
+        snprintf(text, sizeof(text), "FIX %c>%c ok", motion_char(f->motion_before),
+                 motion_char(f->motion_after));
+    } else {
+        snprintf(text, sizeof(text), "FIX %c>%c %d %d", motion_char(f->motion_before),
+                 motion_char(f->motion_after), f->read_ret, f->close_ret);
+    }
+
+    k_mutex_lock(&fix_mutex, K_FOREVER);
+    strncpy(fix_text, text, TP_LINE_CHARS);
+    fix_text[TP_LINE_CHARS] = '\0';
+    fix_active = true;
+    k_mutex_unlock(&fix_mutex);
+
+    k_work_reschedule(&fix_clear_work, K_MSEC(TP_FIX_SHOW_MS));
+}
+#endif /* CONFIG_SPLIT54TP_TP_FIX */
 
 #if STATUS_CENTRAL
 static bool mac_layer_active(void) {
@@ -285,6 +339,13 @@ static struct status_state gather_state(const zmk_event_t *eh) {
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
     s.usb_powered = zmk_usb_is_powered();
 #endif
+
+    k_mutex_lock(&fix_mutex, K_FOREVER);
+    s.fix_active = fix_active;
+    if (fix_active) {
+        memcpy(s.fix_text, fix_text, sizeof(s.fix_text));
+    }
+    k_mutex_unlock(&fix_mutex);
 
     return s;
 }
@@ -429,8 +490,11 @@ static void render(const struct status_state *s) {
         render_mods(s);
     }
 
-    if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r) {
-        if (s->tp_l == 0 || s->tp_r == 0) {
+    if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r || s->fix_active != shown.fix_active ||
+        strcmp(s->fix_text, shown.fix_text) != 0) {
+        if (s->fix_active) {
+            lv_label_set_text(tp_label, s->fix_text); /* TP 復旧のキーの結果 (10 秒) */
+        } else if (s->tp_l == 0 || s->tp_r == 0) {
             lv_label_set_text(tp_label, "");
         } else {
             lv_label_set_text_fmt(tp_label, "TP L%3u%% R%3u%%", (unsigned int)s->tp_l,
@@ -648,6 +712,13 @@ static void status_refresh(const zmk_event_t *eh) {
 }
 
 static int split54tp_status_listener(const zmk_event_t *eh) {
+#if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
+    const struct split54tp_tp_fix_done *fev = as_split54tp_tp_fix_done(eh);
+    if (fev != NULL) {
+        fix_store(fev);
+    }
+#endif
+
 #if STATUS_PERIPHERAL
     /* 右と切れたら、届いていた内容は古いので使わない (つながり直すと右が送り直す) */
     const struct zmk_split_peripheral_status_changed *pev = as_zmk_split_peripheral_status_changed(eh);
@@ -685,6 +756,9 @@ ZMK_SUBSCRIPTION(split54tp_status, zmk_usb_conn_state_changed);
 #endif
 #if IS_ENABLED(CONFIG_ZMK_BATTERY_REPORTING)
 ZMK_SUBSCRIPTION(split54tp_status, zmk_battery_state_changed);
+#endif
+#if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
+ZMK_SUBSCRIPTION(split54tp_status, split54tp_tp_fix_done);
 #endif
 
 /* ---------------------------------------------------------------- 画面を作る */

@@ -307,6 +307,19 @@
         };
 
         /*
+         * ★ 2026-11-11 TP 復旧 (試し)。押した側の LPPS に、ドライバと同じ読み取り (3 バイト + バスを閉じる 1 バイト) を送り、
+         *   結果を押した側の OLED の TP の行に 10 秒出す (「FIX 前>後 ok」など)。設定レイヤーの F (左) / J (右)。
+         *   電源を入れたまま置くと TP が止まり、LPPS の電源を切るまで戻らないことがある (keyboard-project/docs/rev7-修正計画.md 手順 161〜163)。
+         *   止まったときにこれで戻るかを見るためのもの。ノード名は 8 文字以内 (左で実行させるため)。
+         *   src/behaviors/behavior_tp_fix.c
+         */
+        tpfix: tpfix {
+            compatible = "zmk,behavior-tp-fix";
+            #binding-cells = <0>;
+            display-name = "TP Fix";
+        };
+
+        /*
          * ★ 2026-11-04 TP 感度 (左右別)。&tps_l TPS_DN などで使う。
          *   段は split54tp.dtsi の tp_speed_l / tp_speed_r (25〜300%、13 段、既定 100%)。
          *   src/behaviors/behavior_tp_speed.c
@@ -407,6 +420,8 @@
          *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / /=TP 校正 .=書き換え M=感度を下げる ,=感度を上げる N=感度を既定に戻す
          *   ★ 2026-11-09 B / N (ホイールの隣) に「感度を既定 (100%) に戻す」(&tps_l / &tps_r TPS_DEF) を置いた (ユーザー指定)。
          *     ゴースト (計算): B + Esc → C (左の感度を下げる)、N + - → , (右の感度を上げる) が立ちうる。書き換え・BT 消去には立たない。
+         *   ★ 2026-11-11 F / J に TP 復旧 (&tpfix、試し) を置いた (ユーザー指定)。押した側の LPPS を読み直し、結果を押した側の OLED に 10 秒出す。
+         *     ゴースト (計算): F・J はほかのどのキーと同時に押しても、設定レイヤーで何かするキーは立たない。
          *   Q〜R と P〜U、Z・X と /・. は、同じ指で同じことができるように左右対称にした。
          *   感度は左右とも「左のキー = 下げる / 右のキー = 上げる」(ユーザー指定)。
          *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
@@ -419,7 +434,7 @@
             bindings = <
 &none          &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &none
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
-&tog SETTINGS  &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る
+&tog SETTINGS  &none          &none          &none          &tpfix         &none            &none          &tpfix         &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る / F・J = TP 復旧 (試し、2026-11-11)
 &none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &tps_l TPS_DEF   &tps_r TPS_DEF &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none   // B / N (ホイールの隣) = 感度を既定 (100%) に戻す (2026-11-09)
                                              &none          &none          &tog SETTINGS    &tog SETTINGS  &none          &none   // L1 / L2 の位置 = 設定レイヤーから出る
 &none                                                                                                 &none   // ホイールのプッシュ

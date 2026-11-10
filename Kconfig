@@ -5,11 +5,18 @@
 
 DT_COMPAT_ZMK_BEHAVIOR_TP_CALIB_LOCAL := zmk,behavior-tp-calib-local
 DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_SPEED := zmk,input-processor-tp-speed
+DT_COMPAT_ZMK_BEHAVIOR_TP_FIX := zmk,behavior-tp-fix
 
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)
 config SPLIT54TP_TP_CALIB_LOCAL
     bool
     default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TP_CALIB_LOCAL))
+    depends on LPPS
+
+# ★ 2026-11-11 TP 復旧のキー (試し)。押した側の LPPS を読み直す (左右どちらのビルドにも要る)
+config SPLIT54TP_TP_FIX
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TP_FIX))
     depends on LPPS
 
 # スティックの感度を動作中に変える (セントラルだけで使う)

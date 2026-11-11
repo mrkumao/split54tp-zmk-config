@@ -178,6 +178,34 @@
             bindings = <&bt BT_SEL 3>, <&to BASE>;
         };
 
+        /*
+         * ★ 2026-11-11 ボタン一つでペアリング (ユーザー指定)。設定レイヤーの 左 1〜4 / 右 6〜9 = BT1〜BT4。
+         *   出力を BT にする → その番号を選ぶ → その番号の登録を消す (ペアリング待ちになる) → その OS のレイヤーへ。
+         *   &to で設定レイヤーから出る。OLED は「BTn ⚙」(歯車 = ペアリング待ち)。相手の機器でも古い登録を消してからペアリングする。
+         *   ⚠ 押すとその番号の登録が消える (ほかの番号と、左右の間の接続は消えない)。
+         *   https://zmk.dev/docs/keymaps/behaviors/bluetooth / https://zmk.dev/docs/keymaps/behaviors/outputs
+         */
+        pair1: pair1 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 0>, <&bt BT_CLR>, <&to MAC>;
+        };
+        pair2: pair2 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 1>, <&bt BT_CLR>, <&to BASE>;
+        };
+        pair3: pair3 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 2>, <&bt BT_CLR>, <&to IPAD>;
+        };
+        pair4: pair4 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 3>, <&bt BT_CLR>, <&to BASE>;
+        };
+
         bt_1: bt_1 {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
@@ -422,6 +450,13 @@
          *     ゴースト (計算): B + Esc → C (左の感度を下げる)、N + - → , (右の感度を上げる) が立ちうる。書き換え・BT 消去には立たない。
          *   ★ 2026-11-11 F / J に TP 復旧 (&tpfix、試し) を置いた (ユーザー指定)。押した側の LPPS を読み直し、結果を押した側の OLED に 10 秒出す。
          *     ゴースト (計算): F・J はほかのどのキーと同時に押しても、設定レイヤーで何かするキーは立たない。
+         *   ★ 2026-11-11 左 1〜4 / 右 6〜9 に「ボタン一つでペアリング」(&pair1〜&pair4 = BT1 Mac / BT2 Win / BT3 iPad / BT4 予備) を置いた (ユーザー指定)。
+         *     押すと、出力を BT にし、その番号を選び、その番号の登録を消して、その OS のレイヤーへ移る (設定レイヤーから出る)。
+         *     右は 6 = BT1 … 9 = BT4 (数字の順。左右対称ではない)。
+         *     ゴースト (計算): 入ったキーを押したまま数字を押すと危ない。左 Esc + 3 / 右 - + 8 → 書き換え (+ BT3 のペアリング)。
+         *       入ったら一度すべてのキーから指を離してから数字を押すこと。
+         *     2 つ同時に押すとペアリングが立つ組み合わせ: 左 2 + X・3 + V・5 + D・Tab + ホイール・Q + B・E + ホイール・R + X・T + Z・A + V・S + B /
+         *       右 6 + K・7 + P・8 + M・9 + .・- + L・Y + /・U + .・I + ホイール・L + N (右は数字の並びが左と対称でないので別に計算)。
          *   Q〜R と P〜U、Z・X と /・. は、同じ指で同じことができるように左右対称にした。
          *   感度は左右とも「左のキー = 下げる / 右のキー = 上げる」(ユーザー指定)。
          *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
@@ -432,7 +467,7 @@
         settings_layer {
             display-name = "Set";
             bindings = <
-&none          &none          &none          &none          &none          &none            &none          &none          &none          &none          &none          &none
+&none          &pair1         &pair2         &pair3         &pair4         &none            &pair1         &pair2         &pair3         &pair4         &none          &none   // 左 1〜4 / 右 6〜9 = BT1〜BT4 をペアリング (2026-11-11)
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
 &tog SETTINGS  &none          &none          &none          &tpfix         &none            &none          &tpfix         &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る / F・J = TP 復旧 (試し、2026-11-11)
 &none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &tps_l TPS_DEF   &tps_r TPS_DEF &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none   // B / N (ホイールの隣) = 感度を既定 (100%) に戻す (2026-11-09)

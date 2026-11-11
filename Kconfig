@@ -6,6 +6,7 @@
 DT_COMPAT_ZMK_BEHAVIOR_TP_CALIB_LOCAL := zmk,behavior-tp-calib-local
 DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_SPEED := zmk,input-processor-tp-speed
 DT_COMPAT_ZMK_BEHAVIOR_TP_FIX := zmk,behavior-tp-fix
+DT_COMPAT_LPPS := lpps
 
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)
 config SPLIT54TP_TP_CALIB_LOCAL
@@ -17,7 +18,20 @@ config SPLIT54TP_TP_CALIB_LOCAL
 config SPLIT54TP_TP_FIX
     bool
     default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TP_FIX))
-    depends on LPPS
+    depends on SPLIT54TP_LPPS_RESCUE
+
+# ★ 2026-11-11 LPPS の読み直し (src/pointing/lpps_rescue.c)。LPPS がある半身で左右とも
+config SPLIT54TP_LPPS_RESCUE
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_LPPS))
+    depends on LPPS && I2C && INPUT
+
+# 自分の側の LPPS からこの時間 (ミリ秒) 動きが来なければ、この間隔で読み直す。0 = 自動の読み直しをしない。
+# 2000 (2 秒) はユーザー指定 (2026-11-11)。.conf に CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS=5000 などと書けば変えられる
+config SPLIT54TP_LPPS_KEEPALIVE_MS
+    int "LPPS keepalive re-read interval (ms, 0 = off)"
+    default 2000
+    depends on SPLIT54TP_LPPS_RESCUE
 
 # スティックの感度を動作中に変える (セントラルだけで使う)
 config SPLIT54TP_TP_SPEED

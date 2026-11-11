@@ -9,6 +9,9 @@ target_sources_ifdef(CONFIG_SPLIT54TP_TP_CALIB_LOCAL app PRIVATE src/behaviors/b
 # ★ 2026-11-11 TP 復旧のキー (試し)。押した側の LPPS を読み直す。これも左右とも
 target_sources_ifdef(CONFIG_SPLIT54TP_TP_FIX app PRIVATE src/behaviors/behavior_tp_fix.c)
 
+# ★ 2026-11-11 LPPS の読み直し (TP 復旧のキーが使う) と、止まったときの自動の読み直し。LPPS がある半身で左右とも
+target_sources_ifdef(CONFIG_SPLIT54TP_LPPS_RESCUE app PRIVATE src/pointing/lpps_rescue.c)
+
 # 自作の宣言 (include/split54tp/)。★ 2026-11-09 左の画面でも使うので左右とも
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 

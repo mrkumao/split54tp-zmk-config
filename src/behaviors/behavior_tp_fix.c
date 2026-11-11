@@ -13,6 +13,8 @@
  *     ドライバの読み取りと同時には走らない。左では behavior が BT の受信のスレッドで呼ばれるので、そこでは I2C を使わない。
  *   ・locality は BEHAVIOR_LOCALITY_EVENT_SOURCE (押した側で動く。&tpcalib と同じ)。
  *     ⚠ ペリフェラルで動かす behavior のノード名は 8 文字以内 (ZMK_SPLIT_RUN_BEHAVIOR_DEV_LEN = 9)。キーマップでは "tpfix"。
+ *   ・2026-11-11 止まった右でこのキーを押したら戻った (FIX H>H 0 -5)。同じ読み取りを自動で行う仕組みを
+ *     src/pointing/lpps_rescue.c に作り、読み取りの中身はそちら (split54tp_lpps_reread) に移した。このキーは確かめる用に残す。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  */
 
@@ -20,12 +22,11 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
 #include <drivers/behavior.h>
 
 #include <zmk/behavior.h>
+#include <split54tp/lpps_rescue.h>
 #include <split54tp/tp_fix.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -34,43 +35,26 @@ ZMK_EVENT_IMPL(split54tp_tp_fix_done);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT) && DT_HAS_COMPAT_STATUS_OKAY(lpps)
 
-#define LPPS_NODE DT_INST(0, lpps)
-
-static const struct i2c_dt_spec lpps_i2c = I2C_DT_SPEC_GET(LPPS_NODE);
-static const struct gpio_dt_spec lpps_motion = GPIO_DT_SPEC_GET(LPPS_NODE, irq_gpios);
-
-/* 読み取りのあと、MOTION が変わるのを待つ時間 */
-#define TP_FIX_SETTLE_MS 5
-
-static int8_t read_motion(void) {
-    int v = gpio_pin_get_dt(&lpps_motion); /* ACTIVE_LOW を付けていないので生の値 (0 = Low) */
-    return (v < 0) ? -1 : (int8_t)v;
-}
-
+/* system work queue で読む (ドライバの motion_work と同じ queue) */
 static void tp_fix_work_cb(struct k_work *work) {
-    struct split54tp_tp_fix_done r;
-    uint8_t buf[3] = {0};
+    struct split54tp_lpps_reread_result rr;
+    split54tp_lpps_reread(&rr, true);
 
-    r.motion_before = read_motion();
-    r.read_ret = (int16_t)i2c_read_dt(&lpps_i2c, buf, sizeof(buf));
-    r.close_ret = (int16_t)i2c_read_dt(&lpps_i2c, buf, 1);
-    k_msleep(TP_FIX_SETTLE_MS);
-    r.motion_after = read_motion();
+    LOG_INF("TP fix: motion %d -> %d, read %d, close %d", rr.motion_before, rr.motion_after,
+            rr.read_ret, rr.close_ret);
 
-    LOG_INF("TP fix: motion %d -> %d, read %d (%02X %02X %02X), close %d", r.motion_before,
-            r.motion_after, r.read_ret, buf[0], buf[1], buf[2], r.close_ret);
-
-    raise_split54tp_tp_fix_done(r);
+    raise_split54tp_tp_fix_done((struct split54tp_tp_fix_done){
+        .motion_before = rr.motion_before,
+        .motion_after = rr.motion_after,
+        .read_ret = rr.read_ret,
+        .close_ret = rr.close_ret,
+    });
 }
 
 K_WORK_DEFINE(tp_fix_work, tp_fix_work_cb);
 
 static int on_tp_fix_pressed(struct zmk_behavior_binding *binding,
                              struct zmk_behavior_binding_event event) {
-    if (!i2c_is_ready_dt(&lpps_i2c) || !gpio_is_ready_dt(&lpps_motion)) {
-        LOG_ERR("TP fix: I2C or GPIO not ready");
-        return ZMK_BEHAVIOR_OPAQUE;
-    }
     k_work_submit(&tp_fix_work);
     return ZMK_BEHAVIOR_OPAQUE;
 }

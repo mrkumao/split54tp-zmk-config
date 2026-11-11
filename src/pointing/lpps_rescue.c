@@ -19,6 +19,12 @@
  *       そのあとは読まないので、ZMK は「使っていない」になり、OLED が消え、左は 30 分で眠れる。
  *       止まっていたスティックは、何かキーを 1 回押せば、すぐ読み直して戻る (キーを押したとき、2 秒以上動きが無ければすぐ読む)。
  *     あわせて、入力の通知の数 (値 0 / 0 でない) を数え、TP 復旧のキー (F / J) で OLED に出す (原因の確認用)。
+ *   ★ 2026-11-11 (3 回目、案 A) CONFIG_SPLIT54TP_LPPS_KEEPALIVE_WINDOW_MS = 0 なら、時間で止めずに読み直し続ける。
+ *     ユーザー: 「3 分ほど置いてから触ると、最初はまったく反応せず、15 秒ほどで動き始めるか TP 復旧で動く」。
+ *     ドリフトがあった間は、ドリフトの値で 20 秒が延び続けて読み直しも続いていた。シュラウドを外してドリフトが止まると、
+ *     置いて 20 秒で読み直しが止まり、その間に LPPS が止まると触っても戻らない (keyboard-project/docs/rev7-修正計画.md 手順 199)。
+ *     試し: 共通 conf で 0 にした。置いても OLED が消えるか (= 読み直しが「操作」にならないか) を見る。
+ *     G / H を押す → 30 秒触らない → もう一度押す、の Z (値 0 の通知) が 0 に近ければ、読み直しは通知を出していない。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  *   https://docs.zephyrproject.org/latest/services/input/index.html
  *   https://github.com/zmkfirmware/zmk/blob/main/app/src/activity.c
@@ -124,6 +130,7 @@ static void note_use(bool key) {
 static void keepalive_work_cb(struct k_work *work) {
     uint32_t now = k_uptime_get_32();
 
+#if WINDOW_MS > 0 /* ★ 2026-11-11 (3 回目) 0 = 時間で止めない */
     if (now - (uint32_t)atomic_get(&last_use_ms) >= WINDOW_MS) {
         /* しばらく使っていない → 見回りを止める (読み直しが ZMK の「操作」にならないように) */
         atomic_set(&running, 0);
@@ -134,6 +141,7 @@ static void keepalive_work_cb(struct k_work *work) {
         }
         return;
     }
+#endif
 
     uint32_t quiet = now - (uint32_t)atomic_get(&last_motion_ms);
     if (quiet < KEEPALIVE_MS) {

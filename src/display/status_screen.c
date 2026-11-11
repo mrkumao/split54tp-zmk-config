@@ -225,12 +225,13 @@ static char motion_char(int8_t level) { return (level < 0) ? '?' : (level ? 'H' 
  * 例: "H>L ok Z12 M0" / "H>H -5 -5 Z3 M0" (16 文字に収める)
  * ★ 2026-11-11 (2 回目) 先頭の "FIX " をやめ、前に押してから今までの入力の通知の数を足した
  *   (Z = 値が 0 の通知、M = 動きの通知。99 で止める)。16 文字に入らなければ M、Z の順に省く。
+ * ★ 2026-11-11 (3 回目) ドリフトの確かめに使うので、Z / M は 999 まで出す ("H>H ok Z999 M999" でちょうど 16 文字)。
  */
 static void fix_store(const struct split54tp_tp_fix_done *f) {
     char text[40];
     char result[16];
-    unsigned int z = MIN(f->zero_events, 99U);
-    unsigned int m = MIN(f->move_events, 99U);
+    unsigned int z = MIN(f->zero_events, 999U);
+    unsigned int m = MIN(f->move_events, 999U);
 
     if (f->read_ret == 0 && f->close_ret == 0) {
         snprintf(result, sizeof(result), "ok");
@@ -245,10 +246,21 @@ static void fix_store(const struct split54tp_tp_fix_done *f) {
         snprintf(text, sizeof(text), "%c>%c %s", b, a, result);
     }
 
-    /* 2 行目: K = キーを押した数 (今押した F / J も入る)、S = ホイール、I = 入力の知らせ。999 で止める */
+    /*
+     * 2 行目: K = キーを押した数 (今押した F / J も入る)、S = ホイール、I = 入力の知らせ。999 で止める
+     * ★ 2026-11-11 (3 回目) 先頭に V = 自分の側のスティックの動きの値の最大 (絶対値、生の値) を足した。
+     *   触らずに置いた間に押せば、ドリフトの大きさが分かる (ドリフトを捨てる境目 open-threshold を決める材料)。
+     *   16 文字に入らなければ S、I の順に省く。
+     */
     char text2[40];
-    snprintf(text2, sizeof(text2), "K%u S%u I%u", MIN(f->key_events, 999U),
-             MIN(f->sensor_events, 999U), MIN(f->input_events, 999U));
+    unsigned int v = MIN(f->max_value, 999U);
+    unsigned int k = MIN(f->key_events, 999U);
+    unsigned int s = MIN(f->sensor_events, 999U);
+    unsigned int in = MIN(f->input_events, 999U);
+    if (snprintf(text2, sizeof(text2), "V%u K%u S%u I%u", v, k, s, in) > TP_LINE_CHARS &&
+        snprintf(text2, sizeof(text2), "V%u K%u I%u", v, k, in) > TP_LINE_CHARS) {
+        snprintf(text2, sizeof(text2), "V%u K%u", v, k);
+    }
 
     k_mutex_lock(&fix_mutex, K_FOREVER);
     strncpy(fix_text, text, TP_LINE_CHARS);

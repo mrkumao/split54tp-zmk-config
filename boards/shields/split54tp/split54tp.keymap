@@ -424,12 +424,20 @@
              *   もとの PgUp の位置 (L1 の T / L2 の Y) は左クリック。もとの PgDn の位置 (L1 の B / L2 の N) は Base と同じ (&trans)。
              *   ゴースト (配線表から計算): L1 + 左 Shift + Q → A (Home) / L2 + 右 Shift + P → ; (End) が立つ。
              *     Shift + PgUp (範囲選択) は、反対側の Shift で押すこと (左右の間ではゴーストは立たない)。
-             *   前からあるもの: L2 + 右 Shift + U (左クリック) → K (↓)、L1 + 左 Shift + R (右クリック) → D (↓)。
+             *   前からあるもの: L2 + 右 Shift + U (右クリック。2026-11-11 (2 回目) までは左クリック) → K (↓)、L1 + 左 Shift + R (右クリック) → D (↓)。
              *   L1 / L2 を押している間、スティックは上下スクロールになる (split54tp_right.overlay の tp_scroll)。
+             * ★ 2026-11-11 (2 回目、ユーザー指定) クリックの並べ替え:
+             *   L1 右: 左クリック U → Y (F1 の上)、右クリック O → U (もとの左クリックの場所)。O は Base と同じ (&trans)。
+             *   L2 左: 左クリック W → T (F5 の上)。W は Base と同じ。/ L2 右: 右クリック O → U (← の上)。O は Base と同じ。
+             *   これで「L1 の右 Y U I」と「L2 の左 T R E」が左右対称 (左・右・中クリック) になる。
+             *   ★ 2026-11-11 (3 回目、ユーザー指定) L1 の左 W (PgUp の右) の左クリックを削除 → Base と同じ。L1 の左のクリックは T (左)・R (右)。
+             *   ゴースト (配線表から計算): Shift / Ctrl + 新しいクリックの場所では立たない。
+             *     立つのはめったに押さない組み合わせだけ: L2 + U (右クリック) + O → Y (左クリック)、L2 + 4 + 左ホイール押し → T (左クリック)、
+             *     L1 + 7 + 右ホイール押し → Y (左クリック)、L1 + 7 + M (F7) → U (右クリック) など。
              */
             bindings = <
 &set_l         &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)
-&kp CAPS       &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &mkp LCLK        &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: Tab の位置=CapsLock Q=PgUp W=左クリック E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック)  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
+&kp CAPS       &kp PG_UP      &trans         &kp UP         &mkp RCLK      &mkp LCLK        &mkp LCLK      &mkp RCLK      &mkp MCLK      &trans         &trans         &kp DEL   // 左: Tab の位置=CapsLock Q=PgUp E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック。(3 回目) W の左クリックを削除 = Base と同じ)  /  右: Y=左クリック U=右クリック I=中クリック、BS の位置=DEL (2026-11-11 (2 回目) 左クリックを U から Y (F1 の上) へ、右クリックを O から U へ。O は Base と同じ)
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
 &trans         &kp PG_DN      &trans         &trans         &trans         &trans           &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: Z=PgDn (2026-11-11 B から Home の下へ)  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
@@ -443,7 +451,7 @@
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)
-&studio_unlock &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans             &mkp LCLK      &mkp LCLK      &kp UP         &mkp RCLK      &kp PG_UP      &studio_unlock   // 左: Tab の位置=Studio解除 W=左クリック E=中クリック R=右クリック (2026-11-09、L1 の右 U I O と同じ並び) / 右: Y=左クリック (2026-11-11 PgUp から) P=PgUp (2026-11-11 Y から) U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
+&studio_unlock &trans         &trans         &mkp MCLK      &mkp RCLK      &mkp LCLK          &mkp LCLK      &mkp RCLK      &kp UP         &trans         &kp PG_UP      &studio_unlock   // 左: Tab の位置=Studio解除 E=中クリック R=右クリック T=左クリック (2026-11-11 (2 回目) 左クリックを W から T (F5 の上) へ。W は Base と同じ。L1 の右 Y U I と左右対称) / 右: Y=左クリック (2026-11-11 PgUp から) U=右クリック (2026-11-11 (2 回目) ← の上。O から) I=↑ P=PgUp (2026-11-11 Y から) BS の位置=Studio解除 (2026-11-01)。O は Base と同じ。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
 &trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &trans         &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 / 右: /=PgDn (2026-11-11 N から End の下へ)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
@@ -459,8 +467,18 @@
          *   出る: L1 / L2 / 左 Ctrl / Enter (&tog SETTINGS)。入ったままになるので、終わったら必ず出る。
          *   ほかのキーは &none。文字が打てなければ設定レイヤーにいる (OLED は "Set")。
          *   片側だけでも使えるよう、左右に同じものを置いた (左のキー = 左に効く / 右のキー = 右に効く)。
-         *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / Z=TP 校正 X=書き換え C=感度を下げる V=感度を上げる B=感度を既定に戻す
-         *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / /=TP 校正 .=書き換え M=感度を下げる ,=感度を上げる N=感度を既定に戻す
+         *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / A=TP 校正 S=感度を既定に戻す D=感度を下げる F=感度を上げる G=TP 復旧 / X=書き換え C=スクロールを既定に
+         *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / ;=TP 校正 L=感度を既定に戻す J=感度を下げる K=感度を上げる H=TP 復旧 / .=書き換え ,=スクロールを既定に
+         *   ★ 2026-11-11 (3 回目、ユーザー指定「設定レイヤーの TP 関連は左右とも TP がある行に全て移す」):
+         *     TP の行 (A〜G / H〜;) の 5 つに、TP 校正・感度戻す・感度−・感度＋・TP 復旧を置いた。並びは Claude が決めた:
+         *       ・TP 校正 (Z / /) と感度−・＋ (C V / M ,) は 1 段上へ (同じ指)。TP 復旧は TP のすぐ隣の G / H。
+         *       ・感度戻す は S / L。右で設定レイヤーに入るキー (-) を押したまま L を押すと BT1 のペアリングが立つ (配線表から計算) ので、
+         *         入った直後に押すことが多そうな TP 復旧ではなく、あまり押さない感度戻すを L にした。入ったら指を全部離してから押すこと。
+         *       ・スクロールの速さを既定に (前は G / H) は TP の行に入らないので C / , へ (ほかのどのキーと同時に押しても、ペアリング・書き換え・BT 消去が立たない場所)。
+         *         遅く・速く (親指の Alt / Space) はそのまま。
+         *     ゴースト (計算、2 キー同時): TP の行のキーどうしでは何も立たない。危ないもの: 4 + A → 書き換え、A + V → BT1 ペア、S + B → BT2 ペア、
+         *       5 + D → BT4 ペア / 7 + ; → 書き換え、- + L → BT1 ペア、6 + K → BT2 ペア (B・V・5・- はふだん押さない、4・7・6 はペアリングのキー)。
+         *   (以下は 2026-11-11 (3 回目) より前の位置の記録)
          *   ★ 2026-11-09 B / N (ホイールの隣) に「感度を既定 (100%) に戻す」(&tps_l / &tps_r TPS_DEF) を置いた (ユーザー指定)。
          *     ゴースト (計算): B + Esc → C (左の感度を下げる)、N + - → , (右の感度を上げる) が立ちうる。書き換え・BT 消去には立たない。
          *   ★ 2026-11-11 F / J に TP 復旧 (&tpfix、試し) を置いた (ユーザー指定)。押した側の LPPS を読み直し、結果を押した側の OLED に 10 秒出す。
@@ -476,7 +494,7 @@
          *       入ったら一度すべてのキーから指を離してから数字を押すこと。
          *     2 つ同時に押すとペアリングが立つ組み合わせ: 左 2 + X・3 + V・5 + D・Tab + ホイール・Q + B・E + ホイール・R + X・T + Z・A + V・S + B /
          *       右 6 + K・7 + P・8 + M・9 + .・- + L・Y + /・U + .・I + ホイール・L + N (右は数字の並びが左と対称でないので別に計算)。
-         *   Q〜R と P〜U、Z・X と /・. は、同じ指で同じことができるように左右対称にした。
+         *   Q〜R と P〜U、A〜G と ;〜H、X・C と .・, は、同じ指で同じことができるように左右対称にした (感度の−・＋だけは下の決まりのため対称でない)。
          *   感度は左右とも「左のキー = 下げる / 右のキー = 上げる」(ユーザー指定)。
          *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
          *   書き換え (&bootloader) と TP 校正 (&tpcalib) は押した側の半身に効く。
@@ -488,8 +506,8 @@
             bindings = <
 &none          &pair1         &pair2         &pair3         &pair4         &none            &pair1         &pair2         &pair3         &pair4         &none          &none   // 左 1〜4 / 右 6〜9 = BT1〜BT4 をペアリング (2026-11-11)
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
-&tog SETTINGS  &none          &none          &none          &tpfix         &tps_s TPS_DEF   &tps_s TPS_DEF &tpfix         &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る / F・J = TP 復旧 (試し、2026-11-11) / G・H = スクロールの速さを既定に (2026-11-11)
-&none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &tps_l TPS_DEF   &tps_r TPS_DEF &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none   // B / N (ホイールの隣) = 感度を既定 (100%) に戻す (2026-11-09)
+&tog SETTINGS  &tpcalib       &tps_l TPS_DEF &tps_l TPS_DN  &tps_l TPS_UP  &tpfix           &tpfix         &tps_r TPS_DN  &tps_r TPS_UP  &tps_r TPS_DEF &tpcalib       &tog SETTINGS   // ★ 2026-11-11 (2 回目) TP の行: 左 A=TP 校正 S=感度戻す D=感度− F=感度＋ G=TP 復旧 / 右 H=TP 復旧 J=感度− K=感度＋ L=感度戻す ;=TP 校正。左 Ctrl / Enter の位置 = 設定レイヤーから出る
+&none          &none          &bootloader    &tps_s TPS_DEF &none          &none            &none          &none          &tps_s TPS_DEF &bootloader    &none          &none   // X / . = 書き換え / C / , = スクロールの速さを既定に (2026-11-11 (2 回目) G・H から)
                                              &tps_s TPS_DN  &tps_s TPS_UP  &tog SETTINGS    &tog SETTINGS  &tps_s TPS_DN  &tps_s TPS_UP   // L1 / L2 の位置 = 設定レイヤーから出る / 左右とも Alt と Space の位置 = スクロールを遅く・速く (2026-11-11)
 &none                                                                                                 &none   // ホイールのプッシュ
             >;

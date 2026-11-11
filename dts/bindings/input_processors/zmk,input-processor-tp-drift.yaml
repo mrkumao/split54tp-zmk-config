@@ -1,0 +1,24 @@
+# split54tp 用 (2026-11-11)
+# スティックのドリフト (触っていないのにカーソルが動く) を捨てる「門」。src/pointing/input_processor_tp_drift.c
+#   門が閉じている間は X / Y を 0 にする。1 つの値の絶対値が open-threshold 以上で開き、hold-ms の間開いている。
+#   開いている間は keep-threshold 以上の値で hold-ms 延びる。値はドライバから来た生の値 (listener のいちばん前に置く)。
+
+description: Drops small stick movements (drift) until a larger movement opens the gate
+
+compatible: "zmk,input-processor-tp-drift"
+
+include: ip_zero_param.yaml
+
+properties:
+  open-threshold:
+    type: int
+    default: 3
+    description: この絶対値以上の値で門が開く (0 = 何もしない、すべて通す)
+  keep-threshold:
+    type: int
+    default: 2
+    description: 開いている間、この絶対値以上の値で開いている時間が延びる (open-threshold 以下にする)
+  hold-ms:
+    type: int
+    default: 300
+    description: 最後に門を開けた (延ばした) 値から、門を開けておく時間 (ミリ秒)

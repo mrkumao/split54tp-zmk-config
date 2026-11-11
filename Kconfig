@@ -6,6 +6,7 @@
 DT_COMPAT_ZMK_BEHAVIOR_TP_CALIB_LOCAL := zmk,behavior-tp-calib-local
 DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_SPEED := zmk,input-processor-tp-speed
 DT_COMPAT_ZMK_BEHAVIOR_TP_FIX := zmk,behavior-tp-fix
+DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_DRIFT := zmk,input-processor-tp-drift
 DT_COMPAT_LPPS := lpps
 
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)
@@ -45,3 +46,9 @@ config SPLIT54TP_LPPS_KEEPALIVE_WINDOW_MS
 config SPLIT54TP_TP_SPEED
     bool
     default $(dt_compat_enabled,$(DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_SPEED))
+
+# ★ 2026-11-11 スティックのドリフトを捨てる「門」(src/pointing/input_processor_tp_drift.c)。
+# ノード (tp_drift_l / tp_drift_r) は右の overlay にだけあるので、右のビルドでだけ有効になる
+config SPLIT54TP_TP_DRIFT
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_DRIFT))

@@ -24,5 +24,8 @@ struct split54tp_lpps_reread_result {
 /* check_after = true なら、読み取りのあと少し待ってから MOTION をもう一度読む (表示用) */
 void split54tp_lpps_reread(struct split54tp_lpps_reread_result *r, bool check_after);
 
-/* 前に呼んでから今までの、入力の通知の数 (zero = 値が 0、move = 値が 0 でない)。呼ぶと 0 に戻す */
-void split54tp_lpps_take_counts(uint32_t *zero, uint32_t *move);
+/*
+ * 前に呼んでから今までの、入力の通知の数 (zero = 値が 0、move = 値が 0 でない) と、
+ * 動きの値の最大 (max_value = X / Y の絶対値。★ 2026-11-11 (3 回目) ドリフトの大きさの確認用)。呼ぶと 0 に戻す
+ */
+void split54tp_lpps_take_counts(uint32_t *zero, uint32_t *move, uint32_t *max_value);

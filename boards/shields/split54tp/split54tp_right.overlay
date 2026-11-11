@@ -58,6 +58,33 @@
  *   L1 / L2 の間はカーソルが動かない (左右も捨てるので斜めに倒しても横スクロールしない)。感度 (tp_speed) は効かない。
  *   逆向きにしたいときは zip_scroll_transform を消す。
  */
+/*
+ * ★ 2026-11-11 (3 回目) ドリフト止め (ユーザー: 「左右どちらかは不明だがドリフトがひどい。何度 TP 校正をしてもすぐ動き始める」)。
+ *   自作の input processor (src/pointing/input_processor_tp_drift.c) の「門」を、左右それぞれのいちばん前に置く
+ *   (L1 / L2 のスクロールの差し替え tp_scroll にも。差し替えると元の並びは使われないため)。
+ *   門が閉じている間は小さな動き (ドリフト) を捨てる。生の値 (絶対値) が open-threshold 以上で開き、
+ *   hold-ms の間は通す。開いている間は keep-threshold 以上の値で延びる。
+ *   値は推測で決めた (ドリフトの大きさはまだ測っていない)。F / J (TP 復旧) の 2 行目の V に、自分の側のドリフトの最大の値が出るので、
+ *   それより 1 大きい open-threshold にする。止めたいときは open-threshold = <0>。
+ */
+/ {
+    tp_drift_l: tp_drift_l {
+        compatible = "zmk,input-processor-tp-drift";
+        #input-processor-cells = <0>;
+        open-threshold = <3>;
+        keep-threshold = <2>;
+        hold-ms = <300>;
+    };
+
+    tp_drift_r: tp_drift_r {
+        compatible = "zmk,input-processor-tp-drift";
+        #input-processor-cells = <0>;
+        open-threshold = <3>;
+        keep-threshold = <2>;
+        hold-ms = <300>;
+    };
+};
+
 / {
     /* 上下 (Y) だけをホイールへ。左右 (X) は INPUT_REL_MISC にして捨てる (ZMK の input_listener.c は REL の X / Y / WHEEL / HWHEEL 以外を無視する) */
     tp_scroll_mapper: tp_scroll_mapper {
@@ -71,12 +98,13 @@
         compatible = "zmk,input-listener";
         device = <&lpps>;
         /* ★ 2026-11-04 &tp_speed_r = 右の感度 (split54tp.dtsi / 設定レイヤーで上げ下げ) */
-        input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
+        /* ★ 2026-11-11 (3 回目) いちばん前に &tp_drift_r (ドリフト止め) */
+        input-processors = <&tp_drift_r &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
 
         /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール */
         tp_scroll {
             layers = <3 4>;
-            input-processors = <&tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+            input-processors = <&tp_drift_r &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
         };
     };
 };
@@ -91,12 +119,13 @@
 &lpps_split_listener {
     status = "okay";
     /* ★ 2026-11-04 &tp_speed_l = 左の感度。左のスティックの分もここ (右) で計算するので、感度だけなら左の書き直しは要らない */
-    input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
+    /* ★ 2026-11-11 (3 回目) いちばん前に &tp_drift_l (ドリフト止め) */
+    input-processors = <&tp_drift_l &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
 
     /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール (右の lpps_listener と同じ) */
     tp_scroll {
         layers = <3 4>;
-        input-processors = <&tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+        input-processors = <&tp_drift_l &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
     };
 };
 

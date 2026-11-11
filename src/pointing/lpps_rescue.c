@@ -79,10 +79,24 @@ void split54tp_lpps_reread(struct split54tp_lpps_reread_result *r, bool check_af
 
 static atomic_t zero_events; /* 値が 0 の通知 */
 static atomic_t move_events; /* 値が 0 でない通知 (= スティックの動き) */
+static atomic_t max_value;   /* ★ 2026-11-11 (3 回目) 動きの値の最大 (絶対値)。ドリフトの大きさの確認用 */
 
-void split54tp_lpps_take_counts(uint32_t *zero, uint32_t *move) {
+void split54tp_lpps_take_counts(uint32_t *zero, uint32_t *move, uint32_t *max) {
     *zero = (uint32_t)atomic_clear(&zero_events);
     *move = (uint32_t)atomic_clear(&move_events);
+    *max = (uint32_t)atomic_clear(&max_value);
+}
+
+static void note_max(int32_t value) {
+    atomic_val_t a = (value < 0) ? -value : value;
+    atomic_val_t cur;
+
+    do {
+        cur = atomic_get(&max_value);
+        if (a <= cur) {
+            return;
+        }
+    } while (!atomic_cas(&max_value, cur, a));
 }
 
 /* ---------------------------------------------------------------- 自動の読み直し */
@@ -169,6 +183,7 @@ static void on_lpps_input(struct input_event *evt, void *user_data) {
         return;
     }
     atomic_inc(&move_events);
+    note_max(evt->value);
 #if CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS > 0
     atomic_set(&last_motion_ms, (atomic_val_t)k_uptime_get_32());
     note_use(false);

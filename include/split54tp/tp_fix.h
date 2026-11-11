@@ -19,6 +19,8 @@ struct split54tp_tp_fix_done {
     /* ★ 2026-11-11 前に押してから今までの、LPPS の入力の通知の数 (値 0 / 0 でない)。OLED が消えない原因の確認用 */
     uint32_t zero_events;
     uint32_t move_events;
+    /* ★ 2026-11-11 (3 回目) 同じ間の、動きの値の最大 (X / Y の絶対値、ドライバから来た生の値)。ドリフトの大きさの確認用 */
+    uint32_t max_value;
     /* ★ 2026-11-11 前に押してから今までの、ZMK が「操作」と数えるものの数 (src/display/activity_count.c) */
     uint32_t key_events;    /* キーを押した数 (今押した F / J も入る) */
     uint32_t sensor_events; /* ホイールの知らせ */

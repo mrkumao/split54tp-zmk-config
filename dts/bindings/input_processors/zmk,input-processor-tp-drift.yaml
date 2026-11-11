@@ -2,6 +2,7 @@
 # スティックのドリフト (触っていないのにカーソルが動く) を捨てる「門」。src/pointing/input_processor_tp_drift.c
 #   門が閉じている間は X / Y を 0 にする。1 つの値の絶対値が open-threshold 以上で開き、hold-ms の間開いている。
 #   開いている間は keep-threshold 以上の値で hold-ms 延びる。値はドライバから来た生の値 (listener のいちばん前に置く)。
+# ★ 2026-11-11 dead-zone (差し引く形) を足した。門を使わないときは open-threshold = 0。
 
 description: Drops small stick movements (drift) until a larger movement opens the gate
 
@@ -13,7 +14,7 @@ properties:
   open-threshold:
     type: int
     default: 3
-    description: この絶対値以上の値で門が開く (0 = 何もしない、すべて通す)
+    description: この絶対値以上の値で門が開く (0 = 門を使わない)
   keep-threshold:
     type: int
     default: 2
@@ -22,3 +23,7 @@ properties:
     type: int
     default: 300
     description: 最後に門を開けた (延ばした) 値から、門を開けておく時間 (ミリ秒)
+  dead-zone:
+    type: int
+    default: 0
+    description: "★ 2026-11-11 X / Y それぞれ、絶対値からこの値を引く (この値以下は 0)。0 = 引かない。門と両方使うと、門を通った値から引く"

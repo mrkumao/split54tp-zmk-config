@@ -19,6 +19,18 @@
  *   ・ZMK が「操作」と数えるのは、ドライバが出した生の知らせ (activity.c)。ここで捨てても、OLED が消えない件には効かない。
  *   ・左右のスティックの受信はどちらもセントラル (右) にあるので、これは右だけで動けばよい。
  *     状態 (門が開いている時刻) はノードごとに持つので、左右で別のノードを使う (tp_drift_l / tp_drift_r)。
+ *
+ * ★ 2026-11-11 (6 回目) 「差し引く」形 (dead-zone) を足した。
+ *   ・背景 (ユーザー): 「細かい調整ができない。ブラウザのタブを閉じるなど、ターゲット上にうまく運べない」
+ *     「カーソルが動くまでに少しタイムラグを感じる (門を入れる前はなかった)」。左右とも。
+ *     門は、開いた瞬間から値をそのまま通す。右 (open 9) では、力が 9 になるまで動かず (= 遅れ)、
+ *     動いた瞬間から 9 ずつ進む (= 行き過ぎる)。力を抜くと 0.3 秒後に止まり、また 9 まで押すと飛ぶ。
+ *   ・やり方: X / Y それぞれ、絶対値から dead-zone を引く。dead-zone 以下は 0。
+ *       例 dead-zone 6: 力 0〜6 → 0、7 → 1、8 → 2、9 → 3、20 → 14 (動き始めがゆっくり。速く動かすときはほぼ同じ)。
+ *     ドリフト (dead-zone 以下の値) は、時間に関係なく常に 0 になる (門のように「開いている間は通る」ことがない)。
+ *   ・軸ごとに引く (X と Y は別の知らせで来るため)。弱い力で斜めに倒すと、片方の軸だけ動くことがある。
+ *     V (G / H の 2 行目) も軸ごとの最大なので、V 以上の dead-zone にすればドリフトは止まる。
+ *   ・門と両方使うと、門を通った値から引く。門を使わないときは open-threshold = 0。
  *   https://zmk.dev/docs/keymaps/input-processors/usage
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  */
@@ -42,6 +54,7 @@ struct tp_drift_config {
     uint16_t open_threshold;
     uint16_t keep_threshold;
     uint16_t hold_ms;
+    uint16_t dead_zone; /* ★ 2026-11-11 (6 回目) */
 };
 
 struct tp_drift_data {
@@ -55,28 +68,43 @@ static int tp_drift_handle_event(const struct device *dev, struct input_event *e
     const struct tp_drift_config *cfg = dev->config;
     struct tp_drift_data *data = dev->data;
 
-    if (cfg->open_threshold == 0 || event->type != INPUT_EV_REL ||
+    if (event->type != INPUT_EV_REL ||
         (event->code != INPUT_REL_X && event->code != INPUT_REL_Y)) {
         return ZMK_INPUT_PROC_CONTINUE;
     }
 
     int32_t a = abs(event->value);
-    int64_t now = k_uptime_get();
-    bool open = now < data->open_until;
 
-    if (a >= cfg->open_threshold || (open && a >= cfg->keep_threshold)) {
-        data->open_until = now + cfg->hold_ms;
-        open = true;
+    if (cfg->open_threshold > 0) {
+        int64_t now = k_uptime_get();
+        bool open = now < data->open_until;
+
+        if (a >= cfg->open_threshold || (open && a >= cfg->keep_threshold)) {
+            data->open_until = now + cfg->hold_ms;
+            open = true;
+        }
+
+        if (open != data->was_open) {
+            LOG_DBG("%s: gate %s (value %d)", dev->name, open ? "open" : "closed",
+                    (int)event->value);
+            data->was_open = open;
+        }
+
+        if (!open) {
+            /* 捨てる。知らせ自体は残す (Y には sync が付いているので、消すと X が次の sync まで残ってしまう) */
+            event->value = 0;
+            return ZMK_INPUT_PROC_CONTINUE;
+        }
     }
 
-    if (open != data->was_open) {
-        LOG_DBG("%s: gate %s (value %d)", dev->name, open ? "open" : "closed", (int)event->value);
-        data->was_open = open;
-    }
-
-    if (!open) {
-        /* 捨てる。知らせ自体は残す (Y には sync が付いているので、消すと X が次の sync まで残ってしまう) */
-        event->value = 0;
+    /* ★ 2026-11-11 (6 回目) 差し引く: dead-zone 以下は 0、超えた分だけ通す (符号はそのまま) */
+    if (cfg->dead_zone > 0) {
+        if (a <= cfg->dead_zone) {
+            event->value = 0;
+        } else {
+            int32_t m = a - cfg->dead_zone;
+            event->value = (event->value < 0) ? -m : m;
+        }
     }
 
     return ZMK_INPUT_PROC_CONTINUE;
@@ -102,7 +130,8 @@ static struct zmk_input_processor_driver_api tp_drift_driver_api = {
         .open_threshold = DT_INST_PROP(n, open_threshold),                                         \
         .keep_threshold = DT_INST_PROP(n, keep_threshold),                                         \
         .hold_ms = DT_INST_PROP(n, hold_ms),                                                       \
-    };                                                                                             \
+        .dead_zone = DT_INST_PROP(n, dead_zone),                                                   \
+    };                                                                                          \
     static struct tp_drift_data tp_drift_data_##n;                                                 \
     DEVICE_DT_INST_DEFINE(n, tp_drift_init, NULL, &tp_drift_data_##n, &tp_drift_config_##n,        \
                           POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &tp_drift_driver_api);

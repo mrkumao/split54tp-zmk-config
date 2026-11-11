@@ -52,10 +52,11 @@
  *   ZMK の input listener の「レイヤーごとの差し替え」(子ノードの layers / input-processors) を使う。
  *   https://zmk.dev/docs/keymaps/input-processors/usage
  *   layers の 3 / 4 はキーマップの LOWER (L1) / RAISE (L2)。キーマップの #define と合わせること。
- *   中身: 上下を 1/8 にする (&zip_y_scaler 1 8、端数は持ち越す) → 上下 (Y) をホイールへ、左右 (X) は捨てる (tp_scroll_mapper)
- *         → ホイールの向きを逆にする (&zip_scroll_transform Y_INVERT。上に倒すと上へスクロール = Windows のふつうの向き)。
+ *   中身: 上下 (Y) をホイールへ、左右 (X) は捨てる (tp_scroll_mapper) → 速さ (&tp_scroll_speed、split54tp.dtsi。設定レイヤーで上げ下げ)
+ *         → ホイールの向きを逆にする (&zip_scroll_transform Y_INVERT。上に倒すと上へスクロール = Windows のふつうの向き。ユーザー: 向きは良い)。
+ *   ★ 2026-11-11 最初は 1/8 固定 (&zip_y_scaler 1 8) で「爆速すぎ」(ユーザー) → 段で変えられる &tp_scroll_speed (既定 1/50) にした。
  *   L1 / L2 の間はカーソルが動かない (左右も捨てるので斜めに倒しても横スクロールしない)。感度 (tp_speed) は効かない。
- *   速さ (1/8) と向きは実機で決める (速すぎる → 1 16、遅い → 1 4。逆向き → zip_scroll_transform の行を消す)。
+ *   逆向きにしたいときは zip_scroll_transform を消す。
  */
 / {
     /* 上下 (Y) だけをホイールへ。左右 (X) は INPUT_REL_MISC にして捨てる (ZMK の input_listener.c は REL の X / Y / WHEEL / HWHEEL 以外を無視する) */
@@ -75,7 +76,7 @@
         /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール */
         tp_scroll {
             layers = <3 4>;
-            input-processors = <&zip_y_scaler 1 8 &tp_scroll_mapper &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+            input-processors = <&tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
         };
     };
 };
@@ -95,7 +96,7 @@
     /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール (右の lpps_listener と同じ) */
     tp_scroll {
         layers = <3 4>;
-        input-processors = <&zip_y_scaler 1 8 &tp_scroll_mapper &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+        input-processors = <&tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
     };
 };
 

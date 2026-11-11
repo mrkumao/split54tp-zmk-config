@@ -5,7 +5,7 @@
  *     y  0〜   1 行目 (Montserrat 12)  左 = BT の番号と接続 / 中 = CAPS (点灯中だけ白抜き) / 右 = 電池 %
  *     y 13〜41 大きく (Montserrat 26)  接続先の名前 (Mac / Win / iPad / Spare / USB)。右に今のレイヤー名
  *     y 44〜54 修飾キー 4 つ (UNSCII 8) Sft / Ctl / Alt / Win (Mac・iPad のレイヤーのときは Opt / Cmd)。押している間だけ白抜き
- *     y 55〜63 TP の感度 (UNSCII 8)     左・右の %
+ *     y 55〜63 TP の感度 (UNSCII 8)     左・右の % と、スクロールの速さの段 (★ 2026-11-11 「L100% R100% S5」)
  *
  *   ・右 (セントラル) は自分で状態を集めて画面に出し、同じ内容を左へ送る。
  *     送り方: ZMK の「左で behavior を動かす」仕組み (zmk_split_central_invoke_behavior) で、
@@ -119,6 +119,11 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <split54tp/tp_speed.h>
 static const struct device *const tp_dev_l = DEVICE_DT_GET(DT_NODELABEL(tp_speed_l));
 static const struct device *const tp_dev_r = DEVICE_DT_GET(DT_NODELABEL(tp_speed_r));
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(tp_scroll_speed), okay)
+#define SCROLL_SPEED_SHOWN 1
+/* ★ 2026-11-11 スクロールの速さ (split54tp.dtsi の tp_scroll_speed)。段の番号を TP の行に出す */
+static const struct device *const tp_dev_s = DEVICE_DT_GET(DT_NODELABEL(tp_scroll_speed));
+#endif
 #endif
 
 /* TP 復旧のキー (2026-11-11)。押した側で動き、結果をイベントで知らせる */
@@ -153,6 +158,7 @@ struct status_state {
     bool mac_style;
     uint16_t tp_l; /* 0 = 不明 */
     uint16_t tp_r;
+    uint8_t scroll; /* スクロールの速さの段 + 1 (1〜10。0 = 不明)。2026-11-11 */
     char layer_name[OLEDSYNC_LAYER_NAME_LEN + 1];
     /* 自分の */
     uint8_t battery;
@@ -171,7 +177,8 @@ static bool shared_equal(const struct status_state *a, const struct status_state
     return a->transport == b->transport && a->transport_connected == b->transport_connected &&
            a->profile == b->profile && a->ble_connected == b->ble_connected &&
            a->ble_bonded == b->ble_bonded && a->mods == b->mods && a->caps == b->caps &&
-           a->mac_style == b->mac_style && a->tp_l == b->tp_l && a->tp_r == b->tp_r;
+           a->mac_style == b->mac_style && a->tp_l == b->tp_l && a->tp_r == b->tp_r &&
+           a->scroll == b->scroll;
 }
 
 static bool state_equal(const struct status_state *a, const struct status_state *b) {
@@ -322,6 +329,9 @@ static struct status_state gather_state(const zmk_event_t *eh) {
 #if TP_SPEED_SHOWN
     s.tp_l = (uint16_t)tp_speed_get_percent(tp_dev_l);
     s.tp_r = (uint16_t)tp_speed_get_percent(tp_dev_r);
+#if defined(SCROLL_SPEED_SHOWN)
+    s.scroll = (uint8_t)(tp_speed_get_level(tp_dev_s) + 1);
+#endif
 #endif
 
 #if STATUS_SENDS_TO_PERIPHERAL
@@ -344,6 +354,7 @@ static struct status_state gather_state(const zmk_event_t *eh) {
         s.mac_style = remote.mac_style;
         s.tp_l = remote.tp_l;
         s.tp_r = remote.tp_r;
+        s.scroll = remote.scroll;
         memcpy(s.layer_name, remote.layer_name, sizeof(s.layer_name));
     }
     s.remote_valid = remote_valid;
@@ -530,15 +541,22 @@ static void render(const struct status_state *s) {
         }
     }
 
-    if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r || s->fix_active != shown.fix_active ||
+    if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r || s->scroll != shown.scroll ||
+        s->fix_active != shown.fix_active ||
         strcmp(s->fix_text, shown.fix_text) != 0) {
         if (s->fix_active) {
             lv_label_set_text(tp_label, s->fix_text); /* TP 復旧のキーの結果 (10 秒) */
         } else if (s->tp_l == 0 || s->tp_r == 0) {
             lv_label_set_text(tp_label, "");
         } else {
-            lv_label_set_text_fmt(tp_label, "TP L%3u%% R%3u%%", (unsigned int)s->tp_l,
-                                  (unsigned int)s->tp_r);
+            /* ★ 2026-11-11 スクロールの段 (S1〜S10) を足したので、先頭の "TP " をやめた (16 文字に収める) */
+            if (s->scroll > 0) {
+                lv_label_set_text_fmt(tp_label, "L%u%% R%u%% S%u", (unsigned int)s->tp_l,
+                                      (unsigned int)s->tp_r, (unsigned int)s->scroll);
+            } else {
+                lv_label_set_text_fmt(tp_label, "TP L%3u%% R%3u%%", (unsigned int)s->tp_l,
+                                      (unsigned int)s->tp_r);
+            }
         }
     }
 
@@ -583,7 +601,7 @@ static void sync_send_state(const struct status_state *s) {
                   ((uint32_t)s->transport_connected << 2) | ((uint32_t)(s->profile & 0x7) << 3) |
                   ((uint32_t)s->ble_connected << 6) | ((uint32_t)s->ble_bonded << 7) |
                   ((uint32_t)s->mods << 8) | ((uint32_t)s->caps << 16) |
-                  ((uint32_t)s->mac_style << 17);
+                  ((uint32_t)s->mac_style << 17) | ((uint32_t)(s->scroll & 0xF) << 18);
     uint32_t p2 = (uint32_t)s->tp_l | ((uint32_t)s->tp_r << 16);
 
     sync_send(p1, p2);
@@ -687,6 +705,7 @@ void split54tp_status_apply_remote(uint32_t param1, uint32_t param2) {
         remote.mods = (param1 >> 8) & 0xFF;
         remote.caps = (param1 >> 16) & 0x1;
         remote.mac_style = (param1 >> 17) & 0x1;
+        remote.scroll = (param1 >> 18) & 0xF;
         remote.tp_l = param2 & 0xFFFF;
         remote.tp_r = (param2 >> 16) & 0xFFFF;
         remote_valid = true;

@@ -14,6 +14,7 @@
  *     bit 8〜15 修飾キー (MOD_LCTL など。左右別)
  *     bit 16    Caps Lock
  *     bit 17    Opt / Cmd の表記 (Mac・iPad のレイヤーが有効)
+ *     bit 18〜21 スクロールの速さの段 + 1 (1〜10。0 = 不明)。★ 2026-11-11
  *   OLEDSYNC_OP_LAYER: レイヤー名の 7 文字まで。param1 の下 24 bit に 0〜2 文字目、param2 に 3〜6 文字目
  *
  *   右: src/display/status_screen.c (送る) / 左: src/behaviors/behavior_oled_sync.c (受ける) → status_screen.c

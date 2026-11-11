@@ -1,6 +1,7 @@
 # split54tp 用 (2026-11-04)
 # 倍率を動作中に変えられる scaler。段の番号はフラッシュに保存し、電源を切っても残る。
-#   出力 = 入力 × levels[段] / 100 (端数は track-remainders で次へ繰り越す)
+#   出力 = 入力 × levels[段] / divisor (divisor の既定は 100 = パーセント。端数は track-remainders で次へ繰り越す)
+# ★ 2026-11-11 スクロールの速さ (1% より細かい刻みが要る) のため divisor を足した
 
 description: Scaler whose level can be changed at runtime (saved to settings)
 
@@ -23,3 +24,7 @@ properties:
     type: int
     required: true
     description: 最初の段 (levels の番号。0 始まり)
+  divisor:
+    type: int
+    default: 100
+    description: levels を割る数 (既定 100 = levels はパーセント。1000 なら千分率)

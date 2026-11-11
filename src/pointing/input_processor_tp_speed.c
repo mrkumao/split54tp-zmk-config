@@ -10,6 +10,9 @@
  *   (フラッシュの書き込み回数を減らすため。ZMK 本体の出力先の保存と同じやり方)。
  *   左右のスティックの受信はどちらもセントラル (右) にあるので、これは右だけで動けばよい。
  *
+ * ★ 2026-11-11 スクロールの速さ (tp_scroll_speed、ホイールを小さくする) にも使うため、割る数 divisor を足した
+ *   (既定 100 = 今までどおりパーセント)。段の番号を読む tp_speed_get_level() も足した (OLED にスクロールの段を出す)。
+ *
  * ★ 2026-11-08 OLED に段を出すため、今の倍率を読む tp_speed_get_percent() と、
  *   段が変わったときのイベント split54tp_tp_speed_changed を足した (include/split54tp/tp_speed.h)。
  *   保存した段を起動時に読み込んだときもイベントを出す (画面が先にできていても正しい値に直るように)。
@@ -44,6 +47,7 @@ struct tp_speed_config {
     size_t levels_len;
     const uint16_t *levels;
     uint8_t default_level;
+    uint16_t divisor;
 };
 
 struct tp_speed_data {
@@ -76,10 +80,10 @@ static int tp_speed_handle_event(const struct device *dev, struct input_event *e
             value += *state->remainder;
         }
 
-        int32_t scaled = value / 100;
+        int32_t scaled = value / cfg->divisor;
 
         if (state && state->remainder) {
-            *state->remainder = (int16_t)(value - scaled * 100);
+            *state->remainder = (int16_t)(value - scaled * cfg->divisor);
         }
 
         event->value = scaled;
@@ -129,6 +133,13 @@ int tp_speed_change(const struct device *dev, int step) {
     return level;
 }
 
+/* 今の段の番号 (0 始まり)。OLED の画面から読む (2026-11-11) */
+int tp_speed_get_level(const struct device *dev) {
+    const struct tp_speed_data *data = dev->data;
+
+    return data->level;
+}
+
 /* 今の倍率 (%)。OLED の画面から読む */
 int tp_speed_get_percent(const struct device *dev) {
     const struct tp_speed_config *cfg = dev->config;
@@ -156,6 +167,7 @@ static struct zmk_input_processor_driver_api tp_speed_driver_api = {
 #define TP_SPEED_INST(n)                                                                           \
     BUILD_ASSERT(DT_INST_PROP(n, default_level) < DT_INST_PROP_LEN(n, levels),                     \
                  "default-level must be an index of levels");                                      \
+    BUILD_ASSERT(DT_INST_PROP(n, divisor) > 0, "divisor must be positive");                       \
     static const uint16_t tp_speed_codes_##n[] = DT_INST_PROP(n, codes);                           \
     static const uint16_t tp_speed_levels_##n[] = DT_INST_PROP(n, levels);                         \
     static const struct tp_speed_config tp_speed_config_##n = {                                    \
@@ -165,6 +177,7 @@ static struct zmk_input_processor_driver_api tp_speed_driver_api = {
         .levels_len = DT_INST_PROP_LEN(n, levels),                                                 \
         .levels = tp_speed_levels_##n,                                                             \
         .default_level = DT_INST_PROP(n, default_level),                                           \
+        .divisor = DT_INST_PROP(n, divisor),                                                       \
     };                                                                                             \
     static struct tp_speed_data tp_speed_data_##n = {                                              \
         .level = DT_INST_PROP(n, default_level),                                                   \

@@ -364,6 +364,13 @@
             processor = <&tp_speed_r>;
             display-name = "TP Speed R";
         };
+        /* ★ 2026-11-11 スクロールの速さ (L1 / L2 + スティック、左右共通)。段は split54tp.dtsi の tp_scroll_speed (0.5〜12.5%、10 段、既定 2%) */
+        tps_s: tps_s {
+            compatible = "zmk,behavior-tp-speed";
+            #binding-cells = <1>;
+            processor = <&tp_scroll_speed>;
+            display-name = "Scroll Speed";
+        };
     };
 
     keymap {
@@ -458,6 +465,10 @@
          *     ゴースト (計算): B + Esc → C (左の感度を下げる)、N + - → , (右の感度を上げる) が立ちうる。書き換え・BT 消去には立たない。
          *   ★ 2026-11-11 F / J に TP 復旧 (&tpfix、試し) を置いた (ユーザー指定)。押した側の LPPS を読み直し、結果を押した側の OLED に 10 秒出す。
          *     ゴースト (計算): F・J はほかのどのキーと同時に押しても、設定レイヤーで何かするキーは立たない。
+         *   ★ 2026-11-11 スクロールの速さ (&tps_s、左右共通): 左 Alt の位置 = 遅く・左 Space の位置 = 速く / 右 Space の位置 = 遅く・右 Alt の位置 = 速く /
+         *     G・H = 既定 (2%) に戻す。「左のキー = 下げる / 右のキー = 上げる」は感度と同じ。
+         *     位置はゴーストの計算で選んだ (ユーザーは位置を指定していない): G・H・親指の Alt・Space は、ほかのどのキーと同時に押しても
+         *     ペアリング・書き換え・BT 消去が立たない (S・D・K・L は 1 キーとの同時押しで立つ組み合わせがあったので避けた)。
          *   ★ 2026-11-11 左 1〜4 / 右 6〜9 に「ボタン一つでペアリング」(&pair1〜&pair4 = BT1 Mac / BT2 Win / BT3 iPad / BT4 予備) を置いた (ユーザー指定)。
          *     押すと、出力を BT にし、その番号を選び、その番号の登録を消して、その OS のレイヤーへ移る (設定レイヤーから出る)。
          *     右は 6 = BT1 … 9 = BT4 (数字の順。左右対称ではない)。
@@ -477,9 +488,9 @@
             bindings = <
 &none          &pair1         &pair2         &pair3         &pair4         &none            &pair1         &pair2         &pair3         &pair4         &none          &none   // 左 1〜4 / 右 6〜9 = BT1〜BT4 をペアリング (2026-11-11)
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
-&tog SETTINGS  &none          &none          &none          &tpfix         &none            &none          &tpfix         &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る / F・J = TP 復旧 (試し、2026-11-11)
+&tog SETTINGS  &none          &none          &none          &tpfix         &tps_s TPS_DEF   &tps_s TPS_DEF &tpfix         &none          &none          &none          &tog SETTINGS   // 左 Ctrl / Enter の位置 = 設定レイヤーから出る / F・J = TP 復旧 (試し、2026-11-11) / G・H = スクロールの速さを既定に (2026-11-11)
 &none          &tpcalib       &bootloader    &tps_l TPS_DN  &tps_l TPS_UP  &tps_l TPS_DEF   &tps_r TPS_DEF &tps_r TPS_DN  &tps_r TPS_UP  &bootloader    &tpcalib       &none   // B / N (ホイールの隣) = 感度を既定 (100%) に戻す (2026-11-09)
-                                             &none          &none          &tog SETTINGS    &tog SETTINGS  &none          &none   // L1 / L2 の位置 = 設定レイヤーから出る
+                                             &tps_s TPS_DN  &tps_s TPS_UP  &tog SETTINGS    &tog SETTINGS  &tps_s TPS_DN  &tps_s TPS_UP   // L1 / L2 の位置 = 設定レイヤーから出る / 左右とも Alt と Space の位置 = スクロールを遅く・速く (2026-11-11)
 &none                                                                                                 &none   // ホイールのプッシュ
             >;
         };

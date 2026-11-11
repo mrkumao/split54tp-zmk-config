@@ -15,6 +15,7 @@
 
 int tp_speed_change(const struct device *dev, int step);
 int tp_speed_get_percent(const struct device *dev);
+int tp_speed_get_level(const struct device *dev); /* 今の段の番号 (0 始まり)。2026-11-11 */
 
 struct split54tp_tp_speed_changed {
     const struct device *dev;

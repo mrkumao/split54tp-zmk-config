@@ -38,10 +38,11 @@ ZMK_EVENT_IMPL(split54tp_tp_fix_done);
 /* system work queue で読む (ドライバの motion_work と同じ queue) */
 static void tp_fix_work_cb(struct k_work *work) {
     struct split54tp_lpps_reread_result rr;
-    uint32_t zero, move;
+    uint32_t zero, move, keys, sensors, inputs;
 
     /* 数は読む前に取る (この読み取りで出る通知は、次に押したときの数に入る) */
     split54tp_lpps_take_counts(&zero, &move);
+    split54tp_activity_take_counts(&keys, &sensors, &inputs);
     split54tp_lpps_reread(&rr, true);
 
     LOG_INF("TP fix: motion %d -> %d, read %d, close %d, events zero %u move %u",
@@ -55,6 +56,9 @@ static void tp_fix_work_cb(struct k_work *work) {
         .close_ret = rr.close_ret,
         .zero_events = zero,
         .move_events = move,
+        .key_events = keys,
+        .sensor_events = sensors,
+        .input_events = inputs,
     });
 }
 

@@ -8,6 +8,8 @@ target_sources_ifdef(CONFIG_SPLIT54TP_TP_CALIB_LOCAL app PRIVATE src/behaviors/b
 
 # ★ 2026-11-11 TP 復旧のキー (試し)。押した側の LPPS を読み直す。これも左右とも
 target_sources_ifdef(CONFIG_SPLIT54TP_TP_FIX app PRIVATE src/behaviors/behavior_tp_fix.c)
+# ★ 2026-11-11 ZMK が「操作」と数えるもの (キー・ホイール・入力) の数。TP 復旧のキーで OLED に出す (確認用)
+target_sources_ifdef(CONFIG_SPLIT54TP_TP_FIX app PRIVATE src/display/activity_count.c)
 
 # ★ 2026-11-11 LPPS の読み直し (TP 復旧のキーが使う) と、止まったときの自動の読み直し。LPPS がある半身で左右とも
 target_sources_ifdef(CONFIG_SPLIT54TP_LPPS_RESCUE app PRIVATE src/pointing/lpps_rescue.c)

@@ -412,11 +412,19 @@
 
         lower_layer {
             display-name = "L1";   // OLED の表示 (2026-11-01)
+            /*
+             * ★ 2026-11-11 (ユーザー指定) PgUp / PgDn を Home・End の上下へ: L1 は Q = PgUp・Z = PgDn (左)、L2 は P = PgUp・/ = PgDn (右)。
+             *   もとの PgUp の位置 (L1 の T / L2 の Y) は左クリック。もとの PgDn の位置 (L1 の B / L2 の N) は Base と同じ (&trans)。
+             *   ゴースト (配線表から計算): L1 + 左 Shift + Q → A (Home) / L2 + 右 Shift + P → ; (End) が立つ。
+             *     Shift + PgUp (範囲選択) は、反対側の Shift で押すこと (左右の間ではゴーストは立たない)。
+             *   前からあるもの: L2 + 右 Shift + U (左クリック) → K (↓)、L1 + 左 Shift + R (右クリック) → D (↓)。
+             *   L1 / L2 を押している間、スティックは上下スクロールになる (split54tp_right.overlay の tp_scroll)。
+             */
             bindings = <
 &set_l         &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)
-&kp CAPS       &trans         &mkp LCLK      &kp UP         &mkp RCLK      &kp PG_UP        &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: Tab の位置=CapsLock W=左クリック E=↑ R=右クリック T=PgUp  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
+&kp CAPS       &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &mkp LCLK        &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans         &kp DEL   // 左: Tab の位置=CapsLock Q=PgUp W=左クリック E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック)  /  右: U=左クリック I=中クリック O=右クリック、BS の位置=DEL
 &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
-&trans         &trans         &trans         &trans         &trans         &kp PG_DN        &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: B=PgDn  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
+&trans         &kp PG_DN      &trans         &trans         &trans         &trans           &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: Z=PgDn (2026-11-11 B から Home の下へ)  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
@@ -428,9 +436,9 @@
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)
-&studio_unlock &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans             &kp PG_UP      &mkp LCLK      &kp UP         &mkp RCLK      &trans         &studio_unlock   // 左: Tab の位置=Studio解除 W=左クリック E=中クリック R=右クリック (2026-11-09、L1 の右 U I O と同じ並び) / 右: Y=PgUp U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
+&studio_unlock &trans         &mkp LCLK      &mkp MCLK      &mkp RCLK      &trans             &mkp LCLK      &mkp LCLK      &kp UP         &mkp RCLK      &kp PG_UP      &studio_unlock   // 左: Tab の位置=Studio解除 W=左クリック E=中クリック R=右クリック (2026-11-09、L1 の右 U I O と同じ並び) / 右: Y=左クリック (2026-11-11 PgUp から) P=PgUp (2026-11-11 Y から) U=左クリック I=↑ O=右クリック BS の位置=Studio解除 (2026-11-01)。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
 &trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
-&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &kp PG_DN      &trans         &trans         &trans         &trans         &trans   // 左: F6-F10 / 右: N=PgDn (2026-11-01)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
+&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &trans         &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 / 右: /=PgDn (2026-11-11 N から End の下へ)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;

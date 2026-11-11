@@ -163,6 +163,7 @@ struct status_state {
     /* 自分の: TP 復旧のキーの結果 (出している間だけ fix_active) */
     bool fix_active;
     char fix_text[TP_LINE_CHARS + 1];
+    char fix_text2[TP_LINE_CHARS + 1]; /* 2 行目 (修飾キーの段): K / S / I の数 */
 };
 
 /* 右から左へ送る項目が同じか */
@@ -177,7 +178,8 @@ static bool state_equal(const struct status_state *a, const struct status_state 
     return shared_equal(a, b) && strcmp(a->layer_name, b->layer_name) == 0 &&
            a->battery == b->battery && a->usb_powered == b->usb_powered &&
            a->link_connected == b->link_connected && a->remote_valid == b->remote_valid &&
-           a->fix_active == b->fix_active && strcmp(a->fix_text, b->fix_text) == 0;
+           a->fix_active == b->fix_active && strcmp(a->fix_text, b->fix_text) == 0 &&
+           strcmp(a->fix_text2, b->fix_text2) == 0;
 }
 
 #if STATUS_PERIPHERAL
@@ -198,6 +200,7 @@ static void status_refresh(const zmk_event_t *eh);
 K_MUTEX_DEFINE(fix_mutex);
 static bool fix_active;
 static char fix_text[TP_LINE_CHARS + 1];
+static char fix_text2[TP_LINE_CHARS + 1];
 
 #if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
 static void fix_clear_work_cb(struct k_work *work) {
@@ -235,9 +238,16 @@ static void fix_store(const struct split54tp_tp_fix_done *f) {
         snprintf(text, sizeof(text), "%c>%c %s", b, a, result);
     }
 
+    /* 2 行目: K = キーを押した数 (今押した F / J も入る)、S = ホイール、I = 入力の知らせ。999 で止める */
+    char text2[40];
+    snprintf(text2, sizeof(text2), "K%u S%u I%u", MIN(f->key_events, 999U),
+             MIN(f->sensor_events, 999U), MIN(f->input_events, 999U));
+
     k_mutex_lock(&fix_mutex, K_FOREVER);
     strncpy(fix_text, text, TP_LINE_CHARS);
     fix_text[TP_LINE_CHARS] = '\0';
+    strncpy(fix_text2, text2, TP_LINE_CHARS);
+    fix_text2[TP_LINE_CHARS] = '\0';
     fix_active = true;
     k_mutex_unlock(&fix_mutex);
 
@@ -358,6 +368,7 @@ static struct status_state gather_state(const zmk_event_t *eh) {
     s.fix_active = fix_active;
     if (fix_active) {
         memcpy(s.fix_text, fix_text, sizeof(s.fix_text));
+        memcpy(s.fix_text2, fix_text2, sizeof(s.fix_text2));
     }
     k_mutex_unlock(&fix_mutex);
 
@@ -381,6 +392,7 @@ static lv_obj_t *layer_label;
 static lv_obj_t *link_label; /* 右だけ: 左とつながっていないときの「L ✕」 */
 static lv_obj_t *mod_labels[MOD_BOX_COUNT];
 static lv_obj_t *tp_label;
+static lv_obj_t *diag_label; /* TP 復旧のキーの 2 行目 (修飾キーの段に、出している間だけ) */
 
 static lv_color_t color_fg; /* 点灯する色 (テーマの文字の色) */
 static lv_color_t color_bg; /* 背景の色 (テーマの画面の色) */
@@ -500,8 +512,22 @@ static void render(const struct status_state *s) {
         }
     }
 
-    if (all || s->mods != shown.mods || s->mac_style != shown.mac_style) {
-        render_mods(s);
+    if (all || s->mods != shown.mods || s->mac_style != shown.mac_style ||
+        s->fix_active != shown.fix_active || strcmp(s->fix_text2, shown.fix_text2) != 0) {
+        if (s->fix_active) {
+            /* TP 復旧のキーの結果を出している間は、修飾キーの段に K / S / I の数 */
+            for (int i = 0; i < MOD_BOX_COUNT; i++) {
+                lv_obj_add_flag(mod_labels[i], LV_OBJ_FLAG_HIDDEN);
+            }
+            lv_label_set_text(diag_label, s->fix_text2);
+            lv_obj_remove_flag(diag_label, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(diag_label, LV_OBJ_FLAG_HIDDEN);
+            for (int i = 0; i < MOD_BOX_COUNT; i++) {
+                lv_obj_remove_flag(mod_labels[i], LV_OBJ_FLAG_HIDDEN);
+            }
+            render_mods(s);
+        }
     }
 
     if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r || s->fix_active != shown.fix_active ||
@@ -842,6 +868,11 @@ lv_obj_t *zmk_display_status_screen(void) {
     /* TP の感度 */
     tp_label = make_label(screen, &lv_font_unscii_8);
     lv_obj_set_pos(tp_label, 0, TP_Y);
+
+    /* ★ 2026-11-11 TP 復旧のキーの 2 行目 (修飾キーの段。y 45〜53)。ふだんは隠す */
+    diag_label = make_label(screen, &lv_font_unscii_8);
+    lv_obj_set_pos(diag_label, 0, MOD_BOX_Y + 1);
+    lv_obj_add_flag(diag_label, LV_OBJ_FLAG_HIDDEN);
 
     screen_ready = true;
 

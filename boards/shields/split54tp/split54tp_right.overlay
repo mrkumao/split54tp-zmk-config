@@ -47,12 +47,36 @@
  *   使える値: INPUT_TRANSFORM_XY_SWAP / _X_INVERT / _Y_INVERT
  *   https://zmk.dev/docs/keymaps/input-processors/transformer
  */
+/*
+ * ★ 2026-11-11 (ユーザー指定) L1 / L2 を押している間、スティック (左右とも) を上下スクロールにする。
+ *   ZMK の input listener の「レイヤーごとの差し替え」(子ノードの layers / input-processors) を使う。
+ *   https://zmk.dev/docs/keymaps/input-processors/usage
+ *   layers の 3 / 4 はキーマップの LOWER (L1) / RAISE (L2)。キーマップの #define と合わせること。
+ *   中身: 上下を 1/8 にする (&zip_y_scaler 1 8、端数は持ち越す) → 上下 (Y) をホイールへ、左右 (X) は捨てる (tp_scroll_mapper)
+ *         → ホイールの向きを逆にする (&zip_scroll_transform Y_INVERT。上に倒すと上へスクロール = Windows のふつうの向き)。
+ *   L1 / L2 の間はカーソルが動かない (左右も捨てるので斜めに倒しても横スクロールしない)。感度 (tp_speed) は効かない。
+ *   速さ (1/8) と向きは実機で決める (速すぎる → 1 16、遅い → 1 4。逆向き → zip_scroll_transform の行を消す)。
+ */
 / {
+    /* 上下 (Y) だけをホイールへ。左右 (X) は INPUT_REL_MISC にして捨てる (ZMK の input_listener.c は REL の X / Y / WHEEL / HWHEEL 以外を無視する) */
+    tp_scroll_mapper: tp_scroll_mapper {
+        compatible = "zmk,input-processor-code-mapper";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_REL>;
+        map = <INPUT_REL_X INPUT_REL_MISC>, <INPUT_REL_Y INPUT_REL_WHEEL>;
+    };
+
     lpps_listener: lpps_listener {
         compatible = "zmk,input-listener";
         device = <&lpps>;
         /* ★ 2026-11-04 &tp_speed_r = 右の感度 (split54tp.dtsi / 設定レイヤーで上げ下げ) */
         input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
+
+        /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール */
+        tp_scroll {
+            layers = <3 4>;
+            input-processors = <&zip_y_scaler 1 8 &tp_scroll_mapper &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+        };
     };
 };
 
@@ -67,6 +91,12 @@
     status = "okay";
     /* ★ 2026-11-04 &tp_speed_l = 左の感度。左のスティックの分もここ (右) で計算するので、感度だけなら左の書き直しは要らない */
     input-processors = <&zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
+
+    /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール (右の lpps_listener と同じ) */
+    tp_scroll {
+        layers = <3 4>;
+        input-processors = <&zip_y_scaler 1 8 &tp_scroll_mapper &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+    };
 };
 
 /*

@@ -130,6 +130,11 @@ static const struct device *const tp_dev_s = DEVICE_DT_GET(DT_NODELABEL(tp_scrol
 #if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
 #include <split54tp/tp_fix.h>
 #endif
+/* ★ 2026-11-11 (5 回目) TP 校正のキーの結果 (src/behaviors/behavior_tp_calib_local.c)。TP 復旧と同じ場所 (fix_text) に出す */
+#define TP_CALIB_SHOWN (IS_ENABLED(CONFIG_SPLIT54TP_TP_CALIB_LOCAL) && IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX))
+#if TP_CALIB_SHOWN
+#include <split54tp/tp_calib.h>
+#endif
 #define TP_LINE_CHARS 16      /* TP の行に出せる文字数 (UNSCII 8 は 1 文字 8 ドット × 16 = 128) */
 #define TP_FIX_SHOW_MS 10000 /* TP 復旧の結果を出しておく時間 */
 
@@ -273,6 +278,31 @@ static void fix_store(const struct split54tp_tp_fix_done *f) {
     k_work_reschedule(&fix_clear_work, K_MSEC(TP_FIX_SHOW_MS));
 }
 #endif /* CONFIG_SPLIT54TP_TP_FIX */
+
+#if TP_CALIB_SHOWN
+/*
+ * ★ 2026-11-11 (5 回目) TP 校正の結果。1 行目 "CAL ok" (校正した) / "CAL skip" (ドリフトが来ないので何もしない) /
+ *   "CAL wait!" (頼んだがまだ。次に力がかかると校正されるので、電源を入れ直す) / "CAL err"。
+ *   2 行目 "V数 n数" = 待つ間に来た値の最大 (生の値) と、0 でない値の数。
+ */
+static void calib_store(const struct split54tp_tp_calib_done *c) {
+    static const char *const names[] = {"CAL ok", "CAL skip", "CAL wait!", "CAL err"};
+    const char *name = (c->result < ARRAY_SIZE(names)) ? names[c->result] : "CAL ?";
+    char text2[40];
+
+    snprintf(text2, sizeof(text2), "V%u n%u", (unsigned int)c->peak, (unsigned int)c->count);
+
+    k_mutex_lock(&fix_mutex, K_FOREVER);
+    strncpy(fix_text, name, TP_LINE_CHARS);
+    fix_text[TP_LINE_CHARS] = '\0';
+    strncpy(fix_text2, text2, TP_LINE_CHARS);
+    fix_text2[TP_LINE_CHARS] = '\0';
+    fix_active = true;
+    k_mutex_unlock(&fix_mutex);
+
+    k_work_reschedule(&fix_clear_work, K_MSEC(TP_FIX_SHOW_MS));
+}
+#endif /* TP_CALIB_SHOWN */
 
 #if STATUS_CENTRAL
 static bool mac_layer_active(void) {
@@ -789,6 +819,12 @@ static int split54tp_status_listener(const zmk_event_t *eh) {
         fix_store(fev);
     }
 #endif
+#if TP_CALIB_SHOWN
+    const struct split54tp_tp_calib_done *cev = as_split54tp_tp_calib_done(eh);
+    if (cev != NULL) {
+        calib_store(cev);
+    }
+#endif
 
 #if STATUS_PERIPHERAL
     /* 右と切れたら、届いていた内容は古いので使わない (つながり直すと右が送り直す) */
@@ -830,6 +866,9 @@ ZMK_SUBSCRIPTION(split54tp_status, zmk_battery_state_changed);
 #endif
 #if IS_ENABLED(CONFIG_SPLIT54TP_TP_FIX)
 ZMK_SUBSCRIPTION(split54tp_status, split54tp_tp_fix_done);
+#endif
+#if TP_CALIB_SHOWN
+ZMK_SUBSCRIPTION(split54tp_status, split54tp_tp_calib_done);
 #endif
 
 /* ---------------------------------------------------------------- 画面を作る */

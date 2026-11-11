@@ -499,6 +499,9 @@
          *   BT 消去は選択中の接続先 1 台分だけ (左右の間の接続は消えない)。https://zmk.dev/docs/keymaps/behaviors/bluetooth
          *   書き換え (&bootloader) と TP 校正 (&tpcalib) は押した側の半身に効く。
          *   TP 校正は、押したあと次にスティックが値を送ったときに行われる。そのときスティックに触らないこと。
+         *   ★ 2026-11-11 (5 回目) 押して 1.5 秒後から 5 秒の間にスティックから値が来たとき (= ドリフトしている) だけ校正する。
+         *     来なければ何もしない (ドリフトしていないときに押すと、次に触った力を 0 にしてしまうため)。結果は押した側の OLED に
+         *     "CAL ok" / "CAL skip" / "CAL wait!" (src/behaviors/behavior_tp_calib_local.c)。押したら 7 秒ほど触らない。
          *   https://zmk.dev/docs/keymaps/behaviors/layers
          */
         settings_layer {

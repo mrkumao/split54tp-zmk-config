@@ -33,6 +33,14 @@ config SPLIT54TP_LPPS_KEEPALIVE_MS
     default 2000
     depends on SPLIT54TP_LPPS_RESCUE
 
+# ★ 2026-11-11 (2 回目) 読み直すのは、自分の側のキーを押すかスティックが動いてから、この時間 (ミリ秒) の間だけ。
+# 2 秒ごとの読み直しがずっと続くと OLED が 30 秒で消えなかった (読み直しのあとの値 0 の通知を ZMK が「操作」と数える見込み)。
+# ZMK が「使っていない」とみなす時間 (CONFIG_ZMK_IDLE_TIMEOUT、既定 30000) より短くすること
+config SPLIT54TP_LPPS_KEEPALIVE_WINDOW_MS
+    int "LPPS keepalive: keep re-reading for this long after the last key press or stick motion (ms)"
+    default 20000
+    depends on SPLIT54TP_LPPS_RESCUE
+
 # スティックの感度を動作中に変える (セントラルだけで使う)
 config SPLIT54TP_TP_SPEED
     bool

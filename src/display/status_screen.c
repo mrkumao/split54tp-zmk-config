@@ -31,8 +31,9 @@
  *     TP の行を y 55 に上げ、画面のスクロールとスクロールバーを止めた。
  *
  *   ★ 2026-11-11 TP 復旧のキー (src/behaviors/behavior_tp_fix.c、設定レイヤーの F / J) を押すと、押した側の
- *     TP の行に結果を 10 秒出す: 「FIX 前>後 ok」または「FIX 前>後 読み取り バスを閉じる」(エラー番号)。
+ *     TP の行に結果を 10 秒出す: 「前>後 ok Z数 M数」または「前>後 読み取り バスを閉じる Z数 M数」(エラー番号)。
  *     前 / 後 = 読み取りの前後の MOTION の線 (L = Low = LPPS が「読んで」と言っている / H = High / ? = 読めない)。
+ *     Z / M = 前に押してから今までの LPPS の入力の通知の数 (Z = 値が 0、M = 動き。★ 2026-11-11 (2 回目) 追加。最初は先頭に "FIX " があった)。
  *     1 行 16 文字 (UNSCII 8 で 128 ドット) を超えないように切る。この表示は左へは送らない (押した側だけ)。
  *
  *   作り方は ZMK 標準の画面 (app/src/display/status_screen.c と widgets/) と同じ:
@@ -210,15 +211,28 @@ K_WORK_DELAYABLE_DEFINE(fix_clear_work, fix_clear_work_cb);
 
 static char motion_char(int8_t level) { return (level < 0) ? '?' : (level ? 'H' : 'L'); }
 
-/* 例: "FIX L>H ok" / "FIX H>H -5 -5" (16 文字で切る) */
+/*
+ * 例: "H>L ok Z12 M0" / "H>H -5 -5 Z3 M0" (16 文字に収める)
+ * ★ 2026-11-11 (2 回目) 先頭の "FIX " をやめ、前に押してから今までの入力の通知の数を足した
+ *   (Z = 値が 0 の通知、M = 動きの通知。99 で止める)。16 文字に入らなければ M、Z の順に省く。
+ */
 static void fix_store(const struct split54tp_tp_fix_done *f) {
-    char text[32];
+    char text[40];
+    char result[16];
+    unsigned int z = MIN(f->zero_events, 99U);
+    unsigned int m = MIN(f->move_events, 99U);
+
     if (f->read_ret == 0 && f->close_ret == 0) {
-        snprintf(text, sizeof(text), "FIX %c>%c ok", motion_char(f->motion_before),
-                 motion_char(f->motion_after));
+        snprintf(result, sizeof(result), "ok");
     } else {
-        snprintf(text, sizeof(text), "FIX %c>%c %d %d", motion_char(f->motion_before),
-                 motion_char(f->motion_after), f->read_ret, f->close_ret);
+        snprintf(result, sizeof(result), "%d %d", f->read_ret, f->close_ret);
+    }
+
+    char b = motion_char(f->motion_before);
+    char a = motion_char(f->motion_after);
+    if (snprintf(text, sizeof(text), "%c>%c %s Z%u M%u", b, a, result, z, m) > TP_LINE_CHARS &&
+        snprintf(text, sizeof(text), "%c>%c %s Z%u", b, a, result, z) > TP_LINE_CHARS) {
+        snprintf(text, sizeof(text), "%c>%c %s", b, a, result);
     }
 
     k_mutex_lock(&fix_mutex, K_FOREVER);

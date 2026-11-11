@@ -16,6 +16,9 @@ struct split54tp_tp_fix_done {
     int8_t motion_after;  /* 読み取りのあと */
     int16_t read_ret;     /* 3 バイトの読み取りの結果 (0 = 成功、負 = エラー番号) */
     int16_t close_ret;    /* バスを閉じる 1 バイトの読み取りの結果 */
+    /* ★ 2026-11-11 前に押してから今までの、LPPS の入力の通知の数 (値 0 / 0 でない)。OLED が消えない原因の確認用 */
+    uint32_t zero_events;
+    uint32_t move_events;
 };
 
 ZMK_EVENT_DECLARE(split54tp_tp_fix_done);

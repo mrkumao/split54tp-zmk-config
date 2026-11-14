@@ -28,6 +28,13 @@
  *     次にスティックに力がかかったときに校正されてしまう。そのときは電源を入れ直す (マイコンの再起動で予約は消える)。
  *   ・押した側の LPPS の入力の知らせは INPUT_CALLBACK_DEFINE で受ける (lpps_rescue.c とは別の受け口)。
  *     左では behavior が BT の受信のスレッドで呼ばれるが、ここでは時刻と印を付けるだけで I2C は使わない。
+ *
+ * ★ 2026-11-14 LPPS のドライバを取り込んだ (src/pointing/lpps.c、keyboard-project/docs/rev7-修正計画.md 手順 205)。
+ *   ドライバは差し引いて 0 になる読み取りを知らせなくなったので、入力の知らせではなく、ドライバから直接受ける:
+ *     split54tp_lpps_raw_calib()     読み取りのたびの生の値 (引く前)。小さなドリフトも数えられる
+ *     split54tp_lpps_calib_written() 校正 (レジスタ 0x04) を書いた結果 → "CAL ok" / "CAL err"
+ *   数 n は「読み取り」の数 (前は X / Y の知らせを別々に数えていた)。頼んだあとの「同じ読み取りの Y を飛ばす」処理 (need_sync) は要らなくなった。
+ *   どちらもドライバの読み取り (system work queue) の中で呼ばれる。
  */
 
 #define DT_DRV_COMPAT zmk_behavior_tp_calib_local
@@ -44,6 +51,7 @@
 
 #include <zmk/behavior.h>
 #include <split54tp/tp_calib.h>
+#include <split54tp/lpps_raw.h> /* ★ 2026-11-14 lpps_request_write とドライバからの口 */
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -58,17 +66,15 @@ ZMK_EVENT_IMPL(split54tp_tp_calib_done);
 
 enum { ST_IDLE = 0, ST_WATCH = 1, ST_REQUESTED = 2 };
 
-/* zmk-driver-lpps の src/lpps.c にある公開関数 */
-extern int lpps_request_write(const struct device *dev);
+/* lpps_request_write は取り込んだドライバ (src/pointing/lpps.c) の公開関数。宣言は split54tp/lpps_raw.h (★ 2026-11-14) */
 
 #define LPPS_DEV DEVICE_DT_GET(DT_INST(0, lpps))
 
 static atomic_t state;      /* ST_* */
 static atomic_t watch_from; /* この時刻 (k_uptime_get_32) から数える */
-static atomic_t seen;       /* 数え始めてから来た 0 でない値の数 */
+static atomic_t seen;       /* 数え始めてから来た 0 でない読み取りの数 */
 static atomic_t peak;       /* 同じ間の値の最大 (絶対値) */
 static atomic_t result;     /* SPLIT54TP_CALIB_* */
-static bool need_sync;      /* 頼んだときの読み取りの残り (同じ読み取りの Y) を飛ばす。入力のスレッドだけが触る */
 
 static void calib_report_cb(struct k_work *work) {
     raise_split54tp_tp_calib_done((struct split54tp_tp_calib_done){
@@ -99,36 +105,36 @@ static void calib_timeout_cb(struct k_work *work) {
 
 K_WORK_DELAYABLE_DEFINE(calib_timeout_work, calib_timeout_cb);
 
-static void on_calib_input(struct input_event *evt, void *user_data) {
-    ARG_UNUSED(user_data);
-
-    int st = (int)atomic_get(&state);
-
-    if (st == ST_REQUESTED) {
-        /* ドライバは校正を書いてから値を読む。頼んだあとの読み取りの値が来た = 校正が行われた */
-        if (need_sync) {
-            if (evt->sync) {
-                need_sync = false;
-            }
-            return;
-        }
-        if (atomic_cas(&state, ST_REQUESTED, ST_IDLE)) {
-            k_work_cancel_delayable(&calib_timeout_work);
-            LOG_INF("TP calib: done (values %d, peak %d)", (int)atomic_get(&seen),
-                    (int)atomic_get(&peak));
-            calib_finish(SPLIT54TP_CALIB_DONE);
-        }
+/*
+ * ★ 2026-11-14 ドライバが校正 (レジスタ 0x04) を書いた結果。頼んだあとの書き込み = 校正が行われた
+ *   (前は「頼んだあとの読み取りの値が来たら」で判断していたが、ドライバが小さな値を知らせなくなったため)。
+ */
+void split54tp_lpps_calib_written(int ret) {
+    if (!atomic_cas(&state, ST_REQUESTED, ST_IDLE)) {
+        /* "CAL wait!" のあとに予約が行われた、など。表示はせず、ログだけ残す */
+        LOG_WRN("TP calib: written while not waiting (ret %d)", ret);
         return;
     }
+    k_work_cancel_delayable(&calib_timeout_work);
+    if (ret < 0) {
+        LOG_ERR("TP calib: write failed %d", ret);
+        calib_finish(SPLIT54TP_CALIB_ERROR);
+        return;
+    }
+    LOG_INF("TP calib: done (values %d, peak %d)", (int)atomic_get(&seen), (int)atomic_get(&peak));
+    calib_finish(SPLIT54TP_CALIB_DONE);
+}
 
-    if (st != ST_WATCH || evt->value == 0) {
+/* ★ 2026-11-14 ドライバの読み取りのたびの生の値 (引く前)。待つ間に 0 でない読み取りが来たら校正を頼む */
+void split54tp_lpps_raw_calib(int8_t x, int8_t y) {
+    if (atomic_get(&state) != ST_WATCH || (x == 0 && y == 0)) {
         return;
     }
     if ((int32_t)(k_uptime_get_32() - (uint32_t)atomic_get(&watch_from)) < 0) {
         return; /* 押した直後 (指・振動が収まるのを待っている) */
     }
 
-    atomic_val_t a = (atomic_val_t)abs(evt->value);
+    atomic_val_t a = (atomic_val_t)MAX(abs((int32_t)x), abs((int32_t)y));
     if (a > atomic_get(&peak)) {
         atomic_set(&peak, a);
     }
@@ -140,7 +146,6 @@ static void on_calib_input(struct input_event *evt, void *user_data) {
         return;
     }
 
-    need_sync = !evt->sync;
     int ret = lpps_request_write(LPPS_DEV);
     if (ret < 0) {
         LOG_ERR("TP calib: request failed %d", ret);
@@ -153,8 +158,6 @@ static void on_calib_input(struct input_event *evt, void *user_data) {
             (int)atomic_get(&peak));
     k_work_reschedule(&calib_timeout_work, K_MSEC(CALIB_CONFIRM_MS));
 }
-
-INPUT_CALLBACK_DEFINE(LPPS_DEV, on_calib_input, NULL);
 
 static int on_tp_calib_pressed(struct zmk_behavior_binding *binding,
                                struct zmk_behavior_binding_event event) {

@@ -31,6 +31,10 @@
  *   ・軸ごとに引く (X と Y は別の知らせで来るため)。弱い力で斜めに倒すと、片方の軸だけ動くことがある。
  *     V (G / H の 2 行目) も軸ごとの最大なので、V 以上の dead-zone にすればドリフトは止まる。
  *   ・門と両方使うと、門を通った値から引く。門を使わないときは open-threshold = 0。
+ *
+ * ★ 2026-11-14 差し引く形は、取り込んだ LPPS のドライバ (src/pointing/lpps.c、CONFIG_SPLIT54TP_LPPS_DEAD_ZONE) に移した。
+ *   ここで 0 にしても入力の知らせ自体は残り、ZMK の「操作」と Mac へのマウスの報告になって、キーボードも Mac も眠らなかったため
+ *   (keyboard-project/docs/rev7-修正計画.md 手順 204・205)。右の overlay で dead-zone = 0 にしてある (二重に引かないこと)。
  *   https://zmk.dev/docs/keymaps/input-processors/usage
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  */

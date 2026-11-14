@@ -25,12 +25,17 @@
  *     置いて 20 秒で読み直しが止まり、その間に LPPS が止まると触っても戻らない (keyboard-project/docs/rev7-修正計画.md 手順 199)。
  *     試し: 共通 conf で 0 にした。置いても OLED が消えるか (= 読み直しが「操作」にならないか) を見る。
  *     G / H を押す → 30 秒触らない → もう一度押す、の Z (値 0 の通知) が 0 に近ければ、読み直しは通知を出していない。
+ *     → 結果: 2 日、キーボードも Mac も眠らなかった (手順 204)。いったん 20 秒に戻した。
+ *   ★ 2026-11-14 (案 B) LPPS のドライバを取り込み (src/pointing/lpps.c)、差し引いて 0 になる読み取りは知らせないようにした。
+ *     そのため数 (Z / M / V) は、入力の知らせではなく、ドライバから生の値で受ける (下の split54tp_lpps_raw_rescue)。
+ *     読み直しても知らせが出ない見込みなので、共通 conf で置いている間の読み直し (WINDOW_MS = 0) を戻した (手順 205)。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  *   https://docs.zephyrproject.org/latest/services/input/index.html
  *   https://github.com/zmkfirmware/zmk/blob/main/app/src/activity.c
  */
 
 #include <errno.h>
+#include <stdlib.h> /* ★ 2026-11-14 abs */
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/init.h>
@@ -45,6 +50,7 @@
 #include <zmk/events/position_state_changed.h>
 
 #include <split54tp/lpps_rescue.h>
+#include <split54tp/lpps_raw.h> /* ★ 2026-11-14 */
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -182,20 +188,25 @@ SYS_INIT(keepalive_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
 #endif /* CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS > 0 */
 
-/* ---------------------------------------------------------------- 入力の通知を受ける */
+/* ---------------------------------------------------------------- 生の値を受ける */
 
-static void on_lpps_input(struct input_event *evt, void *user_data) {
-    ARG_UNUSED(user_data);
-    if (evt->value == 0) {
+/*
+ * ★ 2026-11-14 取り込んだドライバ (src/pointing/lpps.c) が、読み取りのたびに引く前の生の値で呼ぶ。
+ *   前は入力の知らせ (INPUT_CALLBACK_DEFINE) で受けていたが、ドライバは小さな値 (差し引いて 0) を知らせなくなったので、
+ *   ドリフトの大きさ (V) や数 (Z / M) が分かるよう、ここで生の値を受ける。
+ *   数は「読み取り 1 回」で 1 つ (前は X / Y の知らせを別々に数えていたので、1 回の読み取りで 2 つ)。
+ *   Z = X も Y も 0 の読み取り / M = どちらかが 0 でない読み取り / V = X / Y の絶対値の最大。
+ *   ドライバの読み取り (system work queue) の中で呼ばれる。I2C は使わない。
+ */
+void split54tp_lpps_raw_rescue(int8_t x, int8_t y) {
+    if (x == 0 && y == 0) {
         atomic_inc(&zero_events);
         return;
     }
     atomic_inc(&move_events);
-    note_max(evt->value);
+    note_max(MAX(abs((int32_t)x), abs((int32_t)y)));
 #if CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS > 0
     atomic_set(&last_motion_ms, (atomic_val_t)k_uptime_get_32());
     note_use(false);
 #endif
 }
-
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(LPPS_NODE), on_lpps_input, NULL);

@@ -9,11 +9,30 @@ DT_COMPAT_ZMK_BEHAVIOR_TP_FIX := zmk,behavior-tp-fix
 DT_COMPAT_ZMK_INPUT_PROCESSOR_TP_DRIFT := zmk,input-processor-tp-drift
 DT_COMPAT_LPPS := lpps
 
+# ★ 2026-11-14 取り込んだ LPPS のドライバ (src/pointing/lpps.c、zmk-driver-lpps 7a4a67c をもとに手を入れたもの)。
+#   上流のドライバは config/split54tp.conf の CONFIG_LPPS=n でビルドから外す。devicetree の compatible "lpps" と binding は上流のまま。
+#   keyboard-project/docs/rev7-修正計画.md 手順 205
+config SPLIT54TP_LPPS
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_LPPS))
+    depends on INPUT
+    select I2C
+
+# ★ 2026-11-14 ドライバで、X / Y それぞれ絶対値からこの値を引く (この値以下は 0)。X も Y も 0 なら入力の知らせを出さない
+#   (ZMK の「操作」にも、Mac へのマウスの報告にもならない)。左右それぞれのビルドで、自分の LPPS に使う。
+#   既定 2 = 左。右は boards/shields/split54tp/split54tp_right.conf で 6 (2026-11-11 までの右の input processor の dead-zone と同じ)。
+config SPLIT54TP_LPPS_DEAD_ZONE
+    int "LPPS: subtract this from |x| and |y|; do not report when both become 0"
+    default 2
+    range 0 100
+    depends on SPLIT54TP_LPPS
+
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)
+# ★ 2026-11-14 depends on を LPPS → SPLIT54TP_LPPS に
 config SPLIT54TP_TP_CALIB_LOCAL
     bool
     default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TP_CALIB_LOCAL))
-    depends on LPPS
+    depends on SPLIT54TP_LPPS
 
 # ★ 2026-11-11 TP 復旧のキー (試し)。押した側の LPPS を読み直す (左右どちらのビルドにも要る)
 config SPLIT54TP_TP_FIX
@@ -22,10 +41,11 @@ config SPLIT54TP_TP_FIX
     depends on SPLIT54TP_LPPS_RESCUE
 
 # ★ 2026-11-11 LPPS の読み直し (src/pointing/lpps_rescue.c)。LPPS がある半身で左右とも
+# ★ 2026-11-14 depends on を LPPS → SPLIT54TP_LPPS に
 config SPLIT54TP_LPPS_RESCUE
     bool
     default $(dt_compat_enabled,$(DT_COMPAT_LPPS))
-    depends on LPPS && I2C && INPUT
+    depends on SPLIT54TP_LPPS && I2C && INPUT
 
 # 自分の側の LPPS からこの時間 (ミリ秒) 動きが来なければ、この間隔で読み直す。0 = 自動の読み直しをしない。
 # 2000 (2 秒) はユーザー指定 (2026-11-11)。.conf に CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS=5000 などと書けば変えられる

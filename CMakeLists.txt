@@ -3,6 +3,10 @@
 #   GitHub Actions では zephyr/module.yml があると -DZMK_EXTRA_MODULES にこのリポジトリが渡される
 #   (zmkfirmware/zmk の .github/workflows/build-user-config.yml)。
 
+# ★ 2026-11-14 取り込んだ LPPS のドライバ (zmk-driver-lpps 7a4a67c をもとに手を入れたもの。上流は CONFIG_LPPS=n で外す)。左右とも
+#   ライセンスは src/pointing/lpps.c の先頭と src/pointing/lpps.LICENSE.txt
+target_sources_ifdef(CONFIG_SPLIT54TP_LPPS app PRIVATE src/pointing/lpps.c)
+
 # 押した側の LPPS を校正する behavior。ペリフェラル (左) でも実行されるので左右ともコンパイルする
 target_sources_ifdef(CONFIG_SPLIT54TP_TP_CALIB_LOCAL app PRIVATE src/behaviors/behavior_tp_calib_local.c)
 

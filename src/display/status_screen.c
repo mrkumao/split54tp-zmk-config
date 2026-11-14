@@ -231,6 +231,9 @@ static char motion_char(int8_t level) { return (level < 0) ? '?' : (level ? 'H' 
  * ★ 2026-11-11 (2 回目) 先頭の "FIX " をやめ、前に押してから今までの入力の通知の数を足した
  *   (Z = 値が 0 の通知、M = 動きの通知。99 で止める)。16 文字に入らなければ M、Z の順に省く。
  * ★ 2026-11-11 (3 回目) ドリフトの確かめに使うので、Z / M は 999 まで出す ("H>H ok Z999 M999" でちょうど 16 文字)。
+ * ★ 2026-11-14 Z / M / V は、取り込んだドライバ (src/pointing/lpps.c) から受けた「読み取り」の生の値で数える
+ *   (Z = X も Y も 0 の読み取り、M = どちらかが 0 でない読み取り、V = 引く前の最大)。前は X / Y の知らせを別々に数えていた。
+ *   入力の知らせ (= ZMK の「操作」) の数は、2 行目の I (activity_count.c) で分かる。
  */
 static void fix_store(const struct split54tp_tp_fix_done *f) {
     char text[40];

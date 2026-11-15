@@ -617,12 +617,26 @@ static void render(const struct status_state *s) {
 #define SYNC_RESEND_COUNT 3    /* つながったときに送り直す回数 */
 #define SYNC_RESEND_FIRST_MS 2000
 #define SYNC_RESEND_INTERVAL_MS 3000
+/*
+ * ★ 2026-11-15 左の OLED が「BT1 ✕」のまま (右は ✓、キーは打てる) になった (keyboard-project/docs/rev7-修正計画.md 手順 206)。
+ *   前は、送るのに失敗しても「送った」と覚えていたので、左とつながったまま送信だけが失敗すると、
+ *   右の状態がまた変わるまで左は古いままだった (推測。どの送信が失敗したかは記録がなく不明)。
+ *   → 失敗したら覚えず、左とつながっていれば SYNC_RETRY_MS ごとに SYNC_RETRY_MAX 回まで送り直す。
+ *   → さらに、左とつながっている間は SYNC_PERIODIC_MS ごとに全部を送り直す (届かずに消えた分も 1 分で直る)。
+ *     左では behavior を動かすだけで、キーやスティックの「操作」にはならない (ZMK の activity.c が数えるのは
+ *     キー・ホイール・入力の知らせ) ので、左右とも眠りは妨げない見込み。
+ */
+#define SYNC_RETRY_MS 1000
+#define SYNC_RETRY_MAX 10
+#define SYNC_PERIODIC_MS 60000
 
 static atomic_t sync_force;
 static struct status_state sync_sent;
 static bool sync_sent_valid;
+static uint8_t sync_retries; /* 表示専用のスレッドだけが触る */
 
-static void sync_send(uint32_t param1, uint32_t param2) {
+/* ★ 2026-11-15 戻り値: すべての相手に送れたら true */
+static bool sync_send(uint32_t param1, uint32_t param2) {
     struct zmk_behavior_binding binding = {
         .behavior_dev = OLEDSYNC_BEHAVIOR_NAME,
         .param1 = param1,
@@ -633,15 +647,19 @@ static void sync_send(uint32_t param1, uint32_t param2) {
         .timestamp = k_uptime_get(),
     };
 
+    bool ok = true;
+
     for (uint8_t source = 0; source < ZMK_SPLIT_CENTRAL_PERIPHERAL_COUNT; source++) {
         int err = zmk_split_central_invoke_behavior(source, &binding, event, true);
         if (err < 0) {
             LOG_DBG("oledsync to %d failed: %d", source, err);
+            ok = false;
         }
     }
+    return ok;
 }
 
-static void sync_send_state(const struct status_state *s) {
+static bool sync_send_state(const struct status_state *s) {
     uint32_t p1 = ((uint32_t)OLEDSYNC_OP_STATE << 24) | ((uint32_t)(s->transport & 0x3)) |
                   ((uint32_t)s->transport_connected << 2) | ((uint32_t)(s->profile & 0x7) << 3) |
                   ((uint32_t)s->ble_connected << 6) | ((uint32_t)s->ble_bonded << 7) |
@@ -649,17 +667,17 @@ static void sync_send_state(const struct status_state *s) {
                   ((uint32_t)s->mac_style << 17) | ((uint32_t)(s->scroll & 0xF) << 18);
     uint32_t p2 = (uint32_t)s->tp_l | ((uint32_t)s->tp_r << 16);
 
-    sync_send(p1, p2);
+    return sync_send(p1, p2);
 }
 
-static void sync_send_layer(const struct status_state *s) {
+static bool sync_send_layer(const struct status_state *s) {
     const uint8_t *c = (const uint8_t *)s->layer_name; /* 8 バイト (後ろは 0 で埋まっている) */
     uint32_t p1 = ((uint32_t)OLEDSYNC_OP_LAYER << 24) | (uint32_t)c[0] | ((uint32_t)c[1] << 8) |
                   ((uint32_t)c[2] << 16);
     uint32_t p2 = (uint32_t)c[3] | ((uint32_t)c[4] << 8) | ((uint32_t)c[5] << 16) |
                   ((uint32_t)c[6] << 24);
 
-    sync_send(p1, p2);
+    return sync_send(p1, p2);
 }
 
 /* 表示専用のスレッドで動かす (ZMK の送信の待ち行列が詰まって待たされても、キーの処理を止めないため) */
@@ -669,21 +687,49 @@ K_WORK_DELAYABLE_DEFINE(sync_work, sync_work_cb);
 static void sync_work_cb(struct k_work *work) {
     struct status_state s = gather_state(NULL);
     bool force = atomic_get(&sync_force) > 0;
+    bool ok = true;
 
     if (force || !sync_sent_valid || !shared_equal(&s, &sync_sent)) {
-        sync_send_state(&s);
+        if (!sync_send_state(&s)) {
+            ok = false;
+        }
     }
     if (force || !sync_sent_valid || strcmp(s.layer_name, sync_sent.layer_name) != 0) {
-        sync_send_layer(&s);
+        if (!sync_send_layer(&s)) {
+            ok = false;
+        }
     }
 
-    sync_sent = s;
-    sync_sent_valid = true;
+    if (ok) {
+        sync_sent = s;
+        sync_sent_valid = true;
+        sync_retries = 0;
+    } else {
+        /* ★ 2026-11-15 送れなかった。「送った」と覚えず、次は全部送る */
+        sync_sent_valid = false;
+    }
 
     if (force && atomic_dec(&sync_force) > 1) {
         k_work_reschedule_for_queue(zmk_display_work_q(), &sync_work,
                                     K_MSEC(SYNC_RESEND_INTERVAL_MS));
+    } else if (!ok && atomic_get(&left_links) > 0 && sync_retries < SYNC_RETRY_MAX) {
+        /* ★ 2026-11-15 左とつながっているのに送れなかった (つながった直後の準備中など) → 少し待って送り直す */
+        sync_retries++;
+        k_work_reschedule_for_queue(zmk_display_work_q(), &sync_work, K_MSEC(SYNC_RETRY_MS));
     }
+}
+
+/* ★ 2026-11-15 左とつながっている間は、1 分ごとに全部を送り直す (届かずに消えた分を直す) */
+static void sync_periodic_cb(struct k_work *work);
+K_WORK_DELAYABLE_DEFINE(sync_periodic_work, sync_periodic_cb);
+
+static void sync_periodic_cb(struct k_work *work) {
+    if (atomic_get(&left_links) > 0) {
+        sync_sent_valid = false; /* sync_work と同じ表示専用のスレッドで動くので、同時には触らない */
+        k_work_reschedule_for_queue(zmk_display_work_q(), &sync_work, K_MSEC(SYNC_DELAY_MS));
+    }
+    k_work_reschedule_for_queue(zmk_display_work_q(), &sync_periodic_work,
+                                K_MSEC(SYNC_PERIODIC_MS));
 }
 
 static void sync_request(void) {
@@ -959,6 +1005,9 @@ lv_obj_t *zmk_display_status_screen(void) {
 #if STATUS_SENDS_TO_PERIPHERAL
     /* 起動のときは、左がもうつながっているかもしれないので送っておく */
     sync_resend_soon();
+    /* ★ 2026-11-15 1 分ごとの送り直しを始める */
+    k_work_reschedule_for_queue(zmk_display_work_q(), &sync_periodic_work,
+                                K_MSEC(SYNC_PERIODIC_MS));
 #endif
 
     return screen;

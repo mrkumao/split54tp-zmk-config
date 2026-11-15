@@ -17,8 +17,13 @@
  * ★ ZMK Studio 対応ビルドです (右=セントラルのみ)。
  *   https://zmk.studio/ に接続すると、再ビルドなしでキー割当を変更できます。
  *   変更するには、まず &studio_unlock を押してロックを解除します。
- *     L2 + Tab位置 … 左半身  (2026-11-01 変更)
- *     L2 + BS位置  … 右半身  (2026-11-01 変更)
+ *     L1 + B の位置 … 左半身  (2026-11-15 変更。前は L2 + Tab の位置)
+ *     L2 + N の位置 … 右半身  (2026-11-15 変更。前は L2 + BS の位置。L3 + N でも同じ)
+ *     L2 の Tab / BS の位置は Del になった (2026-11-15、ユーザー指定)
+ *     ゴースト (2026-11-15 配線表から計算、2 キー同時。L1 / L2 の親指はゴーストが立たない位置):
+ *       B (Studio解除) が立つのは 1 + D・2 + C、N が立つのは , + 9・0 + K、Tab (Del) は 1 + Z、BS (Del) は / + 0 (どれもふだん同時に押さない)。
+ *       B・N・Tab・BS をほかのキーと一緒に押して立つものに、書き換え・ペアリング・BT 消去はない。
+ *   ⚠ 2026-11-15 レイヤーの数と並びを変えた (7 → 27 枚)。Studio で保存したことがあれば、Studio の "Restore Stock Settings" を実行すること。
  *   ⚠ 切断するか、Studio上で一定時間操作しないと再びロックされる。
  *     https://zmk.dev/docs/keymaps/behaviors/studio-unlock
  *
@@ -36,6 +41,7 @@
  *   書き換え・TP 校正・TP 感度・BT 消去・USB / BT 出力の切り替えをまとめた。
  *   片側が使えなくても、もう片側だけで入って設定できるように左右に同じものを置いた。
  *     入る: 左 = L1 + Shift + Esc の位置 / 右 = L2 + Shift + - の位置 (Shift を押していなければ今までどおり ` / |)
+ *       ★ 2026-11-15 右 Shift の位置は L3 になった。右手だけなら L2 + L3 (右 Shift の位置) + - (同じ指の動き)
  *     出る: L1 / L2 / 左 Ctrl / Enter のどれかを押す
  *   入ったままになる (&tog)。ほかのキーは何もしない (&none) ので、文字が打てなければ設定レイヤーにいる。
  *   OLED のレイヤー名は "Set"。
@@ -128,13 +134,47 @@
  *   L1 / L2 のホイールが Mac / iPad の設定に隠れる。番号は下の keymap ノードの並びと合わせること。
  *   https://zmk.dev/docs/keymaps
  */
-#define BASE  0   // Windows / 会社PC (デフォルト)
-#define MAC   1   // Mac      : 左 CTRL の位置 → CMD、左 Space の長押し → CTRL
-#define IPAD  2   // iPad     : Mac と同じ配列 (将来分けられるよう別レイヤーにしてある)
-#define LOWER 3
-#define RAISE 4
-#define SETTINGS 5   // 設定レイヤー (2026-11-04)。L1 / L2 より上に置き、入っている間は L1 / L2 より優先する
-#define DRAG  6      // ★ 2026-11-15 ドラッグ (L1 / L2 のクリックを押している間だけ重なる。中身はすべて &trans)。
+/*
+ * ★ 2026-11-15 OS を 5 つに (ユーザー指定: Mac / Windows / iOS (iPad から改名) / Android / Linux、BT も 5 つ)。
+ *   形は「共通 + OS ごとの差分」(ユーザーが選択): Base / L1 / L2 / L3 は全 OS 共通の 1 組。
+ *   OS ごとに違うキーだけを、その OS のレイヤー (Base の差分) と「OS の L1 / L2 / L3」(L1〜L3 の差分) に書く。
+ *   差分のレイヤーは &trans ばかりで、違うキーだけを書く。Studio でも OS ごとに変えられる。
+ *   「OS の L1」などは条件付きレイヤー (下の conditional_layers) で、その OS と L1 の両方が有効な間だけ重なる。
+ *     https://zmk.dev/docs/keymaps/conditional-layers
+ *   BT1〜5 と OS は 1 対 1 (今は。ユーザーは将来、接続先と OS を別に選びたい):
+ *     BT1 = Mac / BT2 = Windows / BT3 = iOS / BT4 = Android / BT5 = Linux
+ *   OS のレイヤーは Ctrl + 1〜5 (L1 / L2 / L3) とペアリングのキー (設定レイヤー) で切り替わるほか、
+ *   選んでいる BT の相手とつながったときにも自動で合わせる (下の os_layers と src/os_layers.c)。
+ *   電源を入れた直後は Base だけで、相手とつながると、その OS のレイヤーになる。
+ *   番号 (= 下の keymap ノードの並び) を変えたら、split54tp_right.overlay の tp_scroll / tp_drag の layers も直すこと。
+ */
+#define BASE     0   // 共通の Base (どの OS のレイヤーも重なっていないとき = 電源を入れてから相手とつながるまで)
+#define WIN      1   // Windows : 左 Space の長押し → Win (2026-11-15)。ほかは Base のまま
+#define MAC      2   // Mac     : 左 CTRL の位置 → CMD、左 Space の長押し → CTRL
+#define IOS      3   // iOS     : Mac と同じ配列 (2026-11-15 iPad から改名)
+#define ANDROID  4   // Android : 今は差分なし (Base のまま)
+#define LINUX    5   // Linux   : 今は差分なし (Base のまま)
+#define LOWER    6   // L1
+#define RAISE    7   // L2
+#define LAYER3   8   // L3 (2026-11-15 右 Shift の位置を押している間。中身は L2 から F1〜F12 を除いたもの)
+#define WIN_L1   9   // ここから 23 までは「OS の L1 / L2 / L3」(条件付きレイヤー)
+#define WIN_L2  10
+#define WIN_L3  11
+#define MAC_L1  12
+#define MAC_L2  13
+#define MAC_L3  14
+#define IOS_L1  15
+#define IOS_L2  16
+#define IOS_L3  17
+#define AND_L1  18
+#define AND_L2  19
+#define AND_L3  20
+#define LNX_L1  21
+#define LNX_L2  22
+#define LNX_L3  23
+#define SETENT  24   // L2 + L3 を押している間 (条件付き)。- の位置で設定レイヤーへ (右手だけで入るため。前は L2 + 右 Shift + -)
+#define SETTINGS 25  // 設定レイヤー (2026-11-04)。L1〜L3 より上に置き、入っている間は L1〜L3 より優先する
+#define DRAG    26   // ★ 2026-11-15 ドラッグ (L1〜L3 のクリックを押している間だけ重なる。中身はすべて &trans)。
                      //   番号は split54tp_right.overlay の tp_drag の layers と合わせること
 
 // &tps_l / &tps_r (TP 感度) の引数 (src/behaviors/behavior_tp_speed.c と合わせる)
@@ -154,12 +194,13 @@
          * (2026-11-15 訂正。前は「CTRLはホストへ送出されない」と書いていた)。
          * https://zmk.dev/docs/keymaps/behaviors/mod-morph
          *
-         * ZMKは既定で5プロファイルを持つが、ここでは4つだけを使う。
+         * ZMKは既定で5プロファイルを持つ (右 = セントラルは BT_MAX_PAIRED 6 − 左 1)。
+         * ★ 2026-11-15 4 つ → 5 つ全部を使う (5 の位置 = BT5。Ctrl なしは今までどおり \)。
          * https://zmk.dev/docs/features/bluetooth#profiles
          */
         /*
          * プロファイル切替 = BLEプロファイル選択 + OS用ベースレイヤーへ移動
-         *   1: Mac  / 2: Windows(会社PC) / 3: iPad / 4: 予備(Windows配列)
+         *   1: Mac  / 2: Windows(会社PC) / 3: iOS / 4: Android / 5: Linux (2026-11-15。前は 3: iPad / 4: 予備 (Windows 配列))
          *
          * ★ 2026-11-15 切り替える前に、元のホストへ「CTRL を離した」を送る
          *   (ユーザー: Windows でスクロールがズームになり、ほかのマウスでも同じ。Windows の再起動で直る)。
@@ -183,23 +224,30 @@
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 1 &to BASE>;
+            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 1 &to WIN>;   // 2026-11-15 BASE → WIN
         };
-        prof3_ipad: prof3_ipad {
+        prof3_ios: prof3_ios {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 2 &to IPAD>;
+            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 2 &to IOS>;
         };
-        prof4_spare: prof4_spare {
+        prof4_android: prof4_android {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 3 &to BASE>;
+            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 3 &to ANDROID>;   // 2026-11-15 予備 (BASE) → Android
+        };
+        prof5_linux: prof5_linux {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <30>;
+            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 4 &to LINUX>;   // 2026-11-15 追加
         };
 
         /*
          * ★ 2026-11-11 ボタン一つでペアリング (ユーザー指定)。設定レイヤーの 左 1〜4 / 右 6〜9 = BT1〜BT4。
+         *   ★ 2026-11-15 BT5 (Linux) を追加: 左 5 / 右 0。
          *   出力を BT にする → その番号を選ぶ → その番号の登録を消す (ペアリング待ちになる) → その OS のレイヤーへ。
          *   &to で設定レイヤーから出る。OLED は「BTn ⚙」(歯車 = ペアリング待ち)。相手の機器でも古い登録を消してからペアリングする。
          *   ⚠ 押すとその番号の登録が消える (ほかの番号と、左右の間の接続は消えない)。
@@ -238,17 +286,22 @@
         pair2: pair2 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&out OUT_BLE>, <&bt BT_SEL 1>, <&bt BT_CLR>, <&to BASE>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 1>, <&bt BT_CLR>, <&to WIN>;   // 2026-11-15 BASE → WIN
         };
         pair3: pair3 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&out OUT_BLE>, <&bt BT_SEL 2>, <&bt BT_CLR>, <&to IPAD>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 2>, <&bt BT_CLR>, <&to IOS>;
         };
         pair4: pair4 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&out OUT_BLE>, <&bt BT_SEL 3>, <&bt BT_CLR>, <&to BASE>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 3>, <&bt BT_CLR>, <&to ANDROID>;   // 2026-11-15 BASE → ANDROID
+        };
+        pair5: pair5 {   // 2026-11-15 追加 (BT5 = Linux)
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&out OUT_BLE>, <&bt BT_SEL 4>, <&bt BT_CLR>, <&to LINUX>;
         };
 
         bt_1: bt_1 {
@@ -266,13 +319,19 @@
         bt_3: bt_3 {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
-            bindings = <&kp LBKT>, <&prof3_ipad>;
+            bindings = <&kp LBKT>, <&prof3_ios>;
             mods = <(MOD_LCTL|MOD_RCTL)>;
         };
         bt_4: bt_4 {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
-            bindings = <&kp RBKT>, <&prof4_spare>;
+            bindings = <&kp RBKT>, <&prof4_android>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
+        };
+        bt_5: bt_5 {   // 2026-11-15 追加。5 の位置 (Ctrl なしは今までどおり \)
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp BSLH>, <&prof5_linux>;
             mods = <(MOD_LCTL|MOD_RCTL)>;
         };
 
@@ -284,6 +343,9 @@
          *   tap-preferred: 判定は時間だけで決まる。他のキーを一緒に押しても CTRL に早変わりしない。
          *   quick-tap-ms: 短く押してすぐ押し直すと Space のまま（押し続ければ連続入力）。
          *   https://zmk.dev/docs/keymaps/behaviors/hold-tap
+         * ★ 2026-11-15 Windows の左 Space の長押し = Win にも使う (&ctl_spc LGUI SPACE、ユーザー指定)。名前は ctl_spc のまま。
+         *   ⚠ Windows は Win を押して離すだけ (ほかのキーを押さない) とスタートメニューが開く。
+         *     左 Space を約 0.2 秒以上押したまま、ほかのキーを押さずに離すと、スタートメニューが開く (Mac の CTRL では何も起きない)。
          */
         ctl_spc: ctl_spc {
             compatible = "zmk,behavior-hold-tap";
@@ -439,6 +501,44 @@
         };
     };
 
+    /*
+     * ★ 2026-11-15 OS ごとの L1 / L2 / L3 (差分のレイヤー) を、その OS と L1〜L3 の両方が有効な間だけ重ねる。
+     *   ZMK の条件付きレイヤー: if-layers がすべて有効な間だけ then-layer が有効になる。
+     *   https://zmk.dev/docs/keymaps/conditional-layers
+     */
+    conditional_layers {
+        compatible = "zmk,conditional-layers";
+        win_l1 { if-layers = <WIN LOWER>; then-layer = <WIN_L1>; };
+        win_l2 { if-layers = <WIN RAISE>; then-layer = <WIN_L2>; };
+        win_l3 { if-layers = <WIN LAYER3>; then-layer = <WIN_L3>; };
+        mac_l1 { if-layers = <MAC LOWER>; then-layer = <MAC_L1>; };
+        mac_l2 { if-layers = <MAC RAISE>; then-layer = <MAC_L2>; };
+        mac_l3 { if-layers = <MAC LAYER3>; then-layer = <MAC_L3>; };
+        ios_l1 { if-layers = <IOS LOWER>; then-layer = <IOS_L1>; };
+        ios_l2 { if-layers = <IOS RAISE>; then-layer = <IOS_L2>; };
+        ios_l3 { if-layers = <IOS LAYER3>; then-layer = <IOS_L3>; };
+        and_l1 { if-layers = <ANDROID LOWER>; then-layer = <AND_L1>; };
+        and_l2 { if-layers = <ANDROID RAISE>; then-layer = <AND_L2>; };
+        and_l3 { if-layers = <ANDROID LAYER3>; then-layer = <AND_L3>; };
+        lnx_l1 { if-layers = <LINUX LOWER>; then-layer = <LNX_L1>; };
+        lnx_l2 { if-layers = <LINUX RAISE>; then-layer = <LNX_L2>; };
+        lnx_l3 { if-layers = <LINUX LAYER3>; then-layer = <LNX_L3>; };
+        /* L2 + L3 → - の位置で設定レイヤーへ (右手だけで入るため。setent_layer) */
+        set_entry { if-layers = <RAISE LAYER3>; then-layer = <SETENT>; };
+    };
+
+    /*
+     * ★ 2026-11-15 BT のプロファイル (0 から) ごとの OS のレイヤー。src/os_layers.c が使う。
+     *   選んでいる BT の相手とつながったとき (電源を入れた後も)、その OS のレイヤーになっていなければ合わせる。
+     *   ほかの OS のレイヤーだけを外し、L1〜L3・設定レイヤーなどは触らない。出力が USB のときは何もしない。
+     *   並びは prof1_mac〜prof5_linux と合わせる: BT1 Mac / BT2 Windows / BT3 iOS / BT4 Android / BT5 Linux。
+     *   将来、接続先と OS を別に選べるようにするとき (ユーザーの希望) は、ここを入り口にする。
+     */
+    os_layers {
+        compatible = "zmk,split54tp-os-layers";
+        profile-layers = <MAC WIN IOS ANDROID LINUX>;
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
@@ -448,11 +548,27 @@
 &kp ESC    &kp N1  &kp N2  &kp N3  &kp N4  &kp N5        &kp N6  &kp N7  &kp N8     &kp N9   &kp N0    &kp MINUS
 &kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T         &kp Y   &kp U   &kp I      &kp O    &kp P     &kp BSPC
 &kp LCTRL  &kp A   &kp S   &kp D   &kp F   &kp G         &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp ENTER
-&kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
+&kp LSHFT  &kp Z   &kp X   &kp C   &kp V   &kp B         &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &mo LAYER3   // ★ 2026-11-15 右 Shift の位置 = L3 (ユーザー指定。右 Shift はなくなった)
                            &kp LALT  &kp SPACE  &mo LOWER     &mo RAISE  &kp SPACE  &kp RALT
 &mkp LCLK                                                                     &mkp LCLK   // ホイールのプッシュ = 左クリック (2026-11-01)
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        /*
+         * ★ 2026-11-15 Windows (BT2)。左 Space の長押し = Win (ユーザー指定)。ほかは Base のまま。
+         *   ⚠ 長押しのまま何も押さずに離すとスタートメニューが開く (上の ctl_spc の説明)。
+         */
+        win_layer {
+            display-name = "Win";
+            bindings = <
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
+            &trans    &ctl_spc LGUI SPACE    &trans    &trans    &trans    &trans      // thumb: 左Space の長押し = Win
+            &trans    &trans      // ホイールのプッシュ
+            >;
         };
 
         mac_layer {
@@ -469,8 +585,8 @@
             sensor-bindings = <&enc_scroll &enc_scroll>;
         };
 
-        ipad_layer {
-            display-name = "iPad";
+        ios_layer {
+            display-name = "iOS";   // ★ 2026-11-15 iPad → iOS に改名 (ユーザー指定)。src/display/status_screen.c の MAC_LAYER_NAMES と合わせる
             /* iPadOSもCMD系。中身はMacと同じだが、将来分けられるよう別レイヤーにしてある */
             bindings = <
             &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
@@ -481,6 +597,32 @@
             &trans    &trans      // ホイールのプッシュ
             >;
             sensor-bindings = <&enc_scroll &enc_scroll>;
+        };
+
+        /* ★ 2026-11-15 Android (BT4)。今は差分なし (Base のまま)。変えたいキーだけをここに書く */
+        android_layer {
+            display-name = "Android";
+            bindings = <
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
+            &trans    &trans    &trans    &trans    &trans    &trans      // thumb
+            &trans    &trans      // ホイールのプッシュ
+            >;
+        };
+
+        /* ★ 2026-11-15 Linux (BT5)。今は差分なし (Base のまま)。変えたいキーだけをここに書く */
+        linux_layer {
+            display-name = "Linux";
+            bindings = <
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // num
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // upper
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // home
+            &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans    &trans      // lower
+            &trans    &trans    &trans    &trans    &trans    &trans      // thumb
+            &trans    &trans      // ホイールのプッシュ
+            >;
         };
 
         lower_layer {
@@ -504,10 +646,10 @@
              *   重なり、スティックはスクロールではなくカーソルになる。ホイールのプッシュ (右クリック) は &mkp のまま。
              */
             bindings = <
-&set_l         &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)
+&set_l         &bt_1          &bt_2          &bt_3          &bt_4          &bt_5            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)。★ 2026-11-15 5 の位置 = Ctrl と一緒に押すと BT5 (Linux)。Ctrl なしは \ のまま
 &kp CAPS       &kp PG_UP      &trans         &kp UP         &dragclk RCLK  &dragclk LCLK    &dragclk LCLK  &dragclk RCLK  &dragclk MCLK  &trans         &trans         &kp DEL   // 左: Tab の位置=CapsLock Q=PgUp E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック。(3 回目) W の左クリックを削除 = Base と同じ)  /  右: Y=左クリック U=右クリック I=中クリック、BS の位置=DEL (2026-11-11 (2 回目) 左クリックを U から Y (F1 の上) へ、右クリックを O から U へ。O は Base と同じ)
-&trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01)
-&trans         &kp PG_DN      &trans         &trans         &trans         &trans           &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: Z=PgDn (2026-11-11 B から Home の下へ)  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
+&trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01。2026-11-15 から OS ごとの差分レイヤーで差し替え)
+&trans         &kp PG_DN      &trans         &trans         &trans         &studio_unlock   &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: Z=PgDn (2026-11-11 B から Home の下へ) B=Studio解除 (2026-11-15、ユーザー指定。前は L2 + Tab の位置)  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
@@ -518,10 +660,10 @@
         raise_layer {
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
-&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &kp BSLH         &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)
-&studio_unlock &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK      &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &studio_unlock   // 左: Tab の位置=Studio解除 E=中クリック R=右クリック T=左クリック (2026-11-11 (2 回目) 左クリックを W から T (F5 の上) へ。W は Base と同じ。L1 の右 Y U I と左右対称) / 右: Y=左クリック (2026-11-11 PgUp から) U=右クリック (2026-11-11 (2 回目) ← の上。O から) I=↑ P=PgUp (2026-11-11 Y から) BS の位置=Studio解除 (2026-11-01)。O は Base と同じ。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
-&trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc
-&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &trans         &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 / 右: /=PgDn (2026-11-11 N から End の下へ)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &bt_5            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)。★ 2026-11-15 5 の位置 = Ctrl と一緒に押すと BT5
+&kp DEL        &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK      &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // 左: Tab の位置=Del (2026-11-15、ユーザー指定。前は Studio解除) E=中クリック R=右クリック T=左クリック (2026-11-11 (2 回目) 左クリックを W から T (F5 の上) へ。W は Base と同じ。L1 の右 Y U I と左右対称) / 右: Y=左クリック (2026-11-11 PgUp から) U=右クリック (2026-11-11 (2 回目) ← の上。O から) I=↑ P=PgUp (2026-11-11 Y から) BS の位置=Del (2026-11-15。前は Studio解除)。O は Base と同じ。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
+&trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc (OS ごとの差分レイヤーで差し替え。2026-11-15)
+&trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &studio_unlock &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 / 右: N=Studio解除 (2026-11-15、ユーザー指定) /=PgDn (2026-11-11 N から End の下へ)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
             >;
@@ -530,8 +672,237 @@
         };
 
         /*
-         * ★ 2026-11-04 設定レイヤー (SETTINGS = 5)
+         * ★ 2026-11-15 L3 (LAYER3 = 8、ユーザー指定)。Base の右 Shift の位置を押している間。
+         *   中身は L2 のコピーから F1〜F12 を除いたもの (除いた所は &trans = Base と同じ)。
+         *   スティックは L1 / L2 と同じく上下スクロール (split54tp_right.overlay の tp_scroll)。
+         *   - の位置は L2 と同じ &set_r: 左 Shift と一緒に押すと設定レイヤーへ。
+         *   右手だけで入るときは L2 + L3 (右 Shift の位置) + - (下の setent_layer)。前の L2 + 右 Shift + - と同じ指の動き。
+         *   右 Shift はなくなったので、Shift は左 Shift だけ。
+         *   ゴースト (配線表から計算): 右 Shift の位置は、ほかのどのキーと同時に押してもゴーストが立たない (L1 / L2 の親指と同じ)。
+         */
+        layer3_layer {
+            display-name = "L3";
+            bindings = <
+&kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &bt_5          &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r   // L2 と同じ
+&kp DEL        &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK  &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // L2 と同じ
+&trans         &trans         &trans         &trans         &trans         &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 を除いた (Base と同じ) / 右: L2 と同じ
+&trans         &trans         &trans         &trans         &trans         &trans         &studio_unlock &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 を除いた / 右: L2 と同じ (N=Studio解除)。右 Shift の位置 = L3 を押しているキー
+                                             &kp LGUI       &trans         &trans         &trans         &trans         &kp RGUI   // thumb: L2 の F11 (左Space) / F12 (L1 の位置) を除いた (Base と同じ)
+&mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (L2 と同じ)
+            >;
+            sensor-bindings = <&rot_kp PG_DN PG_UP &rot_kp PG_DN PG_UP>;   // L2 と同じ
+        };
+
+        /*
+         * ★ 2026-11-15 OS ごとの L1 / L2 / L3 (差分。条件付きレイヤー: その OS と L1〜L3 の両方が有効な間だけ重なる)。
+         *   ユーザー指定: 「各プロファイルに Base / L1 / L2 / L3、設定レイヤーは共通」→ 形は「共通 + OS ごとの差分」(ユーザーが選択)。
+         *   違うキーだけを書く。今は PrtSc (L1〜L3 の Enter の位置) だけ (ユーザー指定「範囲を選んで撮る」):
+         *     Mac = Cmd+Shift+5 / Windows = Win+Shift+S / iOS = Cmd+Shift+4 / Android・Linux = PrtSc (共通の &kp PSCRN)
+         *     https://support.apple.com/en-us/102646 (Mac) / https://support.microsoft.com/help/13776 (Windows)
+         *   OLED のレイヤー名は 7 文字まで (左へ送る形の都合、include/split54tp/status_sync.h)。
+         */
+        win_l1_layer {
+            display-name = "Win L1";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(S))   // Enter の位置 = PrtSc → Windows: Win+Shift+S (切り取り領域)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        win_l2_layer {
+            display-name = "Win L2";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(S))   // Enter の位置 = PrtSc → Windows: Win+Shift+S (切り取り領域)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        win_l3_layer {
+            display-name = "Win L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(S))   // Enter の位置 = PrtSc → Windows: Win+Shift+S (切り取り領域)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        mac_l1_layer {
+            display-name = "Mac L1";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N5))   // Enter の位置 = PrtSc → Mac: Cmd+Shift+5 (撮り方を選ぶ画面)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        mac_l2_layer {
+            display-name = "Mac L2";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N5))   // Enter の位置 = PrtSc → Mac: Cmd+Shift+5 (撮り方を選ぶ画面)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        mac_l3_layer {
+            display-name = "Mac L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N5))   // Enter の位置 = PrtSc → Mac: Cmd+Shift+5 (撮り方を選ぶ画面)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        ios_l1_layer {
+            display-name = "iOS L1";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N4))   // Enter の位置 = PrtSc → iOS: Cmd+Shift+4 (撮ってすぐ書き込み)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        ios_l2_layer {
+            display-name = "iOS L2";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N4))   // Enter の位置 = PrtSc → iOS: Cmd+Shift+4 (撮ってすぐ書き込み)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        ios_l3_layer {
+            display-name = "iOS L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N4))   // Enter の位置 = PrtSc → iOS: Cmd+Shift+4 (撮ってすぐ書き込み)
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        and_l1_layer {
+            display-name = "Andr L1";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        and_l2_layer {
+            display-name = "Andr L2";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        and_l3_layer {
+            display-name = "Andr L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        lnx_l1_layer {
+            display-name = "Lnx L1";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        lnx_l2_layer {
+            display-name = "Lnx L2";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        lnx_l3_layer {
+            display-name = "Lnx L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        /*
+         * ★ 2026-11-15 L2 + L3 を押している間 (SETENT = 24、条件付きレイヤー)。- の位置で設定レイヤーへ入る。
+         *   右手だけで設定レイヤーに入るため (2026-11-04 のユーザー指定「片側が使えなくても、もう片側だけで設定できるように」)。
+         *   前は L2 + 右 Shift + - (&set_r)。右 Shift の位置が L3 になったので、同じ指の動き (L2 + 右 Shift の位置 + -) をこれで残した。
+         *   ゴースト (計算): L2 と右 Shift の位置は、ほかのキーと同時に押してもゴーストが立たない。
+         */
+        setent_layer {
+            display-name = "L2+L3";
+            bindings = <
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &tog SETTINGS   // - の位置 = 設定レイヤーへ
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+                                             &trans         &trans         &trans         &trans         &trans         &trans
+&trans                                                                                                &trans   // ホイールのプッシュ
+            >;
+        };
+
+        /*
+         * ★ 2026-11-04 設定レイヤー (SETTINGS = 5。2026-11-15 から 25)
          *   入る: 左 = L1 + Shift + Esc の位置 / 右 = L2 + Shift + - の位置 (&set_l / &set_r)
+         *     ★ 2026-11-15 右 Shift の位置は L3 になった。右手だけなら L2 + L3 (右 Shift の位置) + - (setent_layer)、または L2 + 左 Shift + -。
          *   出る: L1 / L2 / 左 Ctrl / Enter (&tog SETTINGS)。入ったままになるので、終わったら必ず出る。
          *   ほかのキーは &none。文字が打てなければ設定レイヤーにいる (OLED は "Set")。
          *   ★ 2026-11-15 ホイール (左右とも): 回す = ホイールのスクロールの速さを 1 段ずつ (下へスクロールする向き = 速く)、押し込み = 既定に戻す (&enc_spd / &tps_w)。OLED の下の行の W の数字が段。
@@ -556,6 +927,11 @@
          *     G・H = 既定 (2%) に戻す。「左のキー = 下げる / 右のキー = 上げる」は感度と同じ。
          *     位置はゴーストの計算で選んだ (ユーザーは位置を指定していない): G・H・親指の Alt・Space は、ほかのどのキーと同時に押しても
          *     ペアリング・書き換え・BT 消去が立たない (S・D・K・L は 1 キーとの同時押しで立つ組み合わせがあったので避けた)。
+         *   ★ 2026-11-15 BT5 (Linux) のペアリング (&pair5) を左 5 / 右 0 に追加。BT3 = iOS (iPad から改名)、BT4 = Android (前は予備)。
+         *     ゴースト (配線表から計算、2 キー同時): 5 が立つのは 4 + Q・Esc + S、0 が立つのは ; + M・BS + 右ホイール押し・N + P。
+         *       ⚠ 左で入った Esc を押したまま S (感度戻す) を押すと BT5 のペアリングが立つ。入ったら一度すべてのキーから指を離すこと (前からの決まり)。
+         *       5 + D は 4 (BT4 のペアリング) も立つ (前から記録あり)。0 + 6 → P (USB へ)、5 + 1 → Q (USB へ) も立つ (ふだん同時には押さない)。
+         *       Ctrl はゴーストが立たない位置なので、L1〜L3 の Ctrl + 5 (BT5 へ切り替え) にゴーストはない。
          *   ★ 2026-11-11 左 1〜4 / 右 6〜9 に「ボタン一つでペアリング」(&pair1〜&pair4 = BT1 Mac / BT2 Win / BT3 iPad / BT4 予備) を置いた (ユーザー指定)。
          *     押すと、出力を BT にし、その番号を選び、その番号の登録を消して、その OS のレイヤーへ移る (設定レイヤーから出る)。
          *     右は 6 = BT1 … 9 = BT4 (数字の順。左右対称ではない)。
@@ -576,7 +952,7 @@
         settings_layer {
             display-name = "Set";
             bindings = <
-&none          &pair1         &pair2         &pair3         &pair4         &none            &pair1         &pair2         &pair3         &pair4         &none          &none   // 左 1〜4 / 右 6〜9 = BT1〜BT4 をペアリング (2026-11-11)
+&none          &pair1         &pair2         &pair3         &pair4         &pair5           &pair1         &pair2         &pair3         &pair4         &pair5         &none   // 左 1〜5 / 右 6〜0 = BT1〜BT5 をペアリング (2026-11-11。BT5 = 左 5 / 右 0 は 2026-11-15)
 &none          &out OUT_USB   &out OUT_BLE   &out OUT_TOG   &bt BT_CLR     &none            &none          &bt BT_CLR     &out OUT_TOG   &out OUT_BLE   &out OUT_USB   &none
 &tog SETTINGS  &tpcalib       &tps_l TPS_DEF &tps_l TPS_DN  &tps_l TPS_UP  &tpfix           &tpfix         &tps_r TPS_DN  &tps_r TPS_UP  &tps_r TPS_DEF &tpcalib       &tog SETTINGS   // ★ 2026-11-11 (2 回目) TP の行: 左 A=TP 校正 S=感度戻す D=感度− F=感度＋ G=TP 復旧 / 右 H=TP 復旧 J=感度− K=感度＋ L=感度戻す ;=TP 校正。左 Ctrl / Enter の位置 = 設定レイヤーから出る
 &none          &none          &bootloader    &tps_s TPS_DEF &none          &none            &none          &none          &tps_s TPS_DEF &bootloader    &none          &none   // X / . = 書き換え / C / , = スクロールの速さを既定に (2026-11-11 (2 回目) G・H から)
@@ -588,7 +964,7 @@
         };
 
         /*
-         * ★ 2026-11-15 ドラッグレイヤー (DRAG = 6)。L1 / L2 のクリック (&dragclk) を押している間だけ重なる。
+         * ★ 2026-11-15 ドラッグレイヤー (DRAG = 6。同じ日に OS のレイヤーを足して 26)。L1〜L3 のクリック (&dragclk) を押している間だけ重なる。
          *   キーはすべて &trans (下のレイヤーと同じ)。このレイヤーがあるときは、スティックが上下スクロールではなく
          *   カーソルになる (split54tp_right.overlay の tp_drag)。OLED のレイヤー名は "Drag" になる。
          */

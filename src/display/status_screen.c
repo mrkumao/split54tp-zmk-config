@@ -3,8 +3,8 @@
  *
  *   128 x 64 の配置 (y は上から):
  *     y  0〜   1 行目 (Montserrat 12)  左 = BT の番号と接続 / 中 = CAPS (点灯中だけ白抜き) / 右 = 電池 %
- *     y 13〜41 大きく (Montserrat 26)  接続先の名前 (Mac / Win / iPad / Spare / USB)。右に今のレイヤー名
- *     y 44〜54 修飾キー 4 つ (UNSCII 8) Sft / Ctl / Alt / Win (Mac・iPad のレイヤーのときは Opt / Cmd)。押している間だけ白抜き
+ *     y 13〜41 大きく (Montserrat 26)  接続先の名前 (Mac / Win / iOS / Andr / Linux / USB。2026-11-15)。右に今のレイヤー名
+ *     y 44〜54 修飾キー 4 つ (UNSCII 8) Sft / Ctl / Alt / Win (Mac・iOS のレイヤーのときは Opt / Cmd)。押している間だけ白抜き
  *     y 55〜63 TP の感度 (UNSCII 8)     左・右の % と、スクロールの速さの段 (★ 2026-11-11 「L100% R100% S5」)
  *
  *   ・右 (セントラル) は自分で状態を集めて画面に出し、同じ内容を左へ送る。
@@ -14,9 +14,9 @@
  *   ・左 (ペリフェラル) は右から届いた内容を出す。電池 % は左自身のもの。右とつながっていないときは「R ✕」と「----」。
  *     USB の給電中 (⚡) は左右とも出す。条件は ZMK 標準の電池の表示 (widgets/battery_status.c) と同じ
  *     CONFIG_USB_DEVICE_STACK (★ 2026-11-09 修正: 最初は CONFIG_ZMK_USB (右だけ) にしていて、左で ⚡ が出なかった)。
- *   ・接続先の名前は BT のプロファイル番号から決める (キーマップの prof1_mac など: 1 = Mac、2 = Win、3 = iPad、4 = 予備)。
+ *   ・接続先の名前は BT のプロファイル番号から決める (キーマップの prof1_mac など: 1 = Mac、2 = Win、3 = iOS、4 = Android、5 = Linux。2026-11-15)。
  *     番号と名前の対応を変えたら PROFILE_NAMES も直すこと。
- *   ・Opt / Cmd にするかは「Mac」「iPad」という名前のレイヤーが有効かで決める (キーマップの display-name)。
+ *   ・Opt / Cmd にするかは「Mac」「iOS」という名前のレイヤーが有効かで決める (キーマップの display-name)。
  *   ・Caps Lock はパソコンから届くランプの状態 (右の CONFIG_ZMK_HID_INDICATORS)。選んでいる接続先の分を出す。
  *   ・修飾キーは左右どちらでも同じ枠が光る。
  *   ・I2C は LPPS と同じ線なので、表示が変わったときだけ書き直す (ふつうの文字のキーでは書かない)。
@@ -143,12 +143,14 @@ static const struct device *const tp_dev_w = DEVICE_DT_GET(DT_NODELABEL(enc_scro
 #define TP_LINE_CHARS 16      /* TP の行に出せる文字数 (UNSCII 8 は 1 文字 8 ドット × 16 = 128) */
 #define TP_FIX_SHOW_MS 10000 /* TP 復旧の結果を出しておく時間 */
 
-/* BT のプロファイル番号 (0 から) → 大きく出す名前。キーマップの prof1_mac〜prof4_spare と合わせる */
-static const char *const PROFILE_NAMES[] = {"Mac", "Win", "iPad", "Spare"};
+/* BT のプロファイル番号 (0 から) → 大きく出す名前。キーマップの prof1_mac〜prof5_linux と合わせる */
+/* ★ 2026-11-15 BT5 を使い、iPad → iOS、予備 → Android、BT5 = Linux。"Android" は大きい文字で幅が足りない見込み (字の幅からの見積もりで約 95 ドット。
+ *   右のレイヤー名と重なる。実機では未確認) ので "Andr" */
+static const char *const PROFILE_NAMES[] = {"Mac", "Win", "iOS", "Andr", "Linux"};
 
 #if STATUS_CENTRAL
 /* Opt / Cmd の表記にするレイヤーの名前 (キーマップの display-name) */
-static const char *const MAC_LAYER_NAMES[] = {"Mac", "iPad"};
+static const char *const MAC_LAYER_NAMES[] = {"Mac", "iOS"};   /* ★ 2026-11-15 iPad → iOS (キーマップの ios_layer の display-name) */
 #endif
 
 /* Caps Lock のランプのビット (HID の LED のページ: ビット 0 = Num Lock、ビット 1 = Caps Lock) */

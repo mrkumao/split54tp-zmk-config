@@ -29,6 +29,8 @@ if ((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     )
     # ★ 2026-11-11 スティックのドリフトを捨てる「門」(左右のスティックの受信がある右だけ)
     target_sources_ifdef(CONFIG_SPLIT54TP_TP_DRIFT app PRIVATE src/pointing/input_processor_tp_drift.c)
+    # ★ 2026-11-15 BT のプロファイルごとに OS のレイヤーを合わせる (キーマップがある右だけ)
+    target_sources_ifdef(CONFIG_SPLIT54TP_OS_LAYERS app PRIVATE src/os_layers.c)
 endif()
 
 # ★ 2026-11-08 OLED の自作の画面 (接続先・レイヤー・修飾キー・Caps Lock・TP の感度)。

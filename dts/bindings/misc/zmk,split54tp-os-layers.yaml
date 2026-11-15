@@ -1,0 +1,13 @@
+# ★ 2026-11-15 split54tp: BT のプロファイルごとの OS のレイヤー (src/os_layers.c)
+#   選んでいる BT の相手とつながったとき、その OS のレイヤーになっていなければ合わせる。
+description: split54tp OS layer per BLE profile
+
+compatible: "zmk,split54tp-os-layers"
+
+properties:
+  profile-layers:
+    type: array
+    required: true
+    description: |
+      BT のプロファイルの番号 (0 から) ごとの OS のレイヤーの番号。
+      並びの中のレイヤーを「OS のレイヤー」とみなし、合わせるときはほかの OS のレイヤーを外す。

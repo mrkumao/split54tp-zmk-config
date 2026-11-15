@@ -52,6 +52,8 @@
  *   ZMK の input listener の「レイヤーごとの差し替え」(子ノードの layers / input-processors) を使う。
  *   https://zmk.dev/docs/keymaps/input-processors/usage
  *   layers の 3 / 4 はキーマップの LOWER (L1) / RAISE (L2)。キーマップの #define と合わせること。
+ *   ★ 2026-11-15 OS のレイヤーを足したので L1 / L2 = 6 / 7。L3 (8、右 Shift の位置) も L2 のコピーなので同じく上下スクロールにした。
+ *     OS ごとの L1〜L3 (差分) や L2 + L3 は、L1〜L3 と一緒に有効になるので書かなくてよい (ZMK はどれか 1 つが有効なら当てはまる)。
  *   中身: 上下 (Y) をホイールへ、左右 (X) は捨てる (tp_scroll_mapper) → 速さ (&tp_scroll_speed、split54tp.dtsi。設定レイヤーで上げ下げ)
  *         → ホイールの向きを逆にする (&zip_scroll_transform Y_INVERT。上に倒すと上へスクロール = Windows のふつうの向き。ユーザー: 向きは良い)。
  *   ★ 2026-11-11 最初は 1/8 固定 (&zip_y_scaler 1 8) で「爆速すぎ」(ユーザー) → 段で変えられる &tp_scroll_speed (既定 1/50) にした。
@@ -125,12 +127,12 @@
          *   ZMK は書いた順に調べて、最初に当てはまったものだけを使う (process-next なし) ので、tp_scroll より前に書く。
          *   中身は上の input-processors (ふだんのカーソル) と同じ。番号はキーマップの #define DRAG と合わせること */
         tp_drag {
-            layers = <6>;
+            layers = <26>;   /* ★ 2026-11-15 6 → 26 (OS のレイヤーを足したため。キーマップの DRAG) */
             input-processors = <&tp_drift_r &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
         };
 
         tp_scroll {
-            layers = <3 4>;
+            layers = <6 7 8>;   /* ★ 2026-11-15 L1 / L2 = 3 / 4 → 6 / 7、L3 (8) を追加 (キーマップの LOWER / RAISE / LAYER3) */
             input-processors = <&tp_drift_r &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
         };
     };
@@ -152,12 +154,12 @@
     /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール (右の lpps_listener と同じ) */
     /* ★ 2026-11-15 ドラッグ (右の lpps_listener の tp_drag と同じ) */
     tp_drag {
-        layers = <6>;
+        layers = <26>;   /* ★ 2026-11-15 6 → 26 (キーマップの DRAG) */
         input-processors = <&tp_drift_l &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
     };
 
     tp_scroll {
-        layers = <3 4>;
+        layers = <6 7 8>;   /* ★ 2026-11-15 L1 / L2 / L3 (右の lpps_listener と同じ) */
         input-processors = <&tp_drift_l &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
     };
 };

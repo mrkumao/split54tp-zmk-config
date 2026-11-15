@@ -35,6 +35,20 @@
  *      続いてから知らせる (1 回だけ跳ねた値を捨てる)。間が LPPS_START_GAP_MS より空いたら数え直す。
  *      実測 (手順 208・209): 触らずに 3 分で左は最大 31 / 8 の値がときどき出て、Mac へ動きを送り続け、画面が消えなかった。
  *      動かしている間の読み取りは 1 秒に約 140 回 (右、3 秒で 419 回) なので、3 回で約 0.02 秒の遅れ。
+ *
+ * ★ 2026-11-15 (2 回目) 変えた所 (手順 211)
+ *   7. 止まっているときの 0 の位置 (基準) を、ゆっくり自動で合わせ直す。
+ *      実測 (手順 210): 5・6 のあとも、触らずに 3 分で右は最大 10 の値が 6 を超えて 3 回以上続き、約 20 回 Mac へ動きを送った
+ *      (右の OLED が点き、Mac の画面も消えなかった)。1 回だけの跳ねではなく、ゆっくりしたずれも混じる。
+ *      止まっているときの読み取りは 1 秒に約 18 回 (右、10 秒で 176 回)、動かしているときは約 140 回。
+ *      やり方: 基準からの力の大きさが LPPS_BASE_TRACK_MAX (引く量の 2 倍、右左とも 12) 以下のとき、
+ *      基準を今の値へ寄せる (引く量以下 = 止まっているときは時定数 4 秒、それを超えて 12 以下は 60 秒でゆっくり)。
+ *      引く量・動き始めの判定・知らせる値は、基準を引いた値で行う。
+ *      ゆっくりしたずれは基準が追いかけるので、引く量を超えにくくなる。12 を超えて押したときは合わせ直さない。
+ *      欠点: 力 7〜12 の弱い力で押し続けると、だんだん遅くなる (手元の計算で、力 9 を 3 秒で約 1 割)。
+ *      止まっているときに急に 10 ほどずれると、基準が追いつくまでの 30 秒ほど、少しずつ動く。
+ *      止まっているときの読み取りは、左も 1 秒に約 17 回 (10 秒で 165 回)。
+ *      校正 (レジスタ 0x04) を書いたら、LPPS の 0 が変わるので基準を 0 に戻す。
  */
 
 #include <stdint.h>
@@ -76,6 +90,10 @@ struct lpps_data {
     int32_t rem_y;
     uint8_t streak;         /* 引く量を超えた読み取りが続いた回数 */
     int64_t last_above_ms;  /* 最後に引く量を超えた時刻 */
+    /* ★ 2026-11-15 (2 回目) 止まっているときの 0 の位置 (基準、65536 倍) と、前の読み取りの時刻 */
+    int32_t base_x;
+    int32_t base_y;
+    int64_t last_read_ms;
 };
 
 static int lpps_i2c_read_reg(const struct device *dev, uint8_t reg, uint8_t *data, uint8_t len) {
@@ -161,10 +179,19 @@ static bool lpps_is_ready(const struct device *dev) {
 /* ★ 2026-11-15 動き始めの判定: 引く量を超えた読み取りの間がこれより空いたら、数え直す */
 #define LPPS_START_GAP_MS 200
 
-/* ★ 2026-11-15 整数の平方根 (切り捨て)。v は最大 2 × 128² = 32768 */
-static uint32_t lpps_isqrt(uint32_t v) {
-    uint32_t r = 0;
-    uint32_t bit = 1UL << 30;
+/* ★ 2026-11-15 (2 回目) 基準の合わせ直し: 時定数、合わせ直す範囲 (基準からの力の大きさ)、1 回に数える時間の上限
+ *   引く量以下 (止まっている) は LPPS_BASE_TAU_MS、引く量を超えて LPPS_BASE_TRACK_MAX 以下 (弱く押しているかもしれない) は
+ *   LPPS_BASE_TAU_SLOW_MS でゆっくり。どちらも 4 秒にすると、力 9 で押し続けたとき 2 秒ほどで止まった (手元の計算)。
+ *   30 秒でも力 9 で 3 秒押すと 24% 遅くなったので 60 秒にした。 */
+#define LPPS_BASE_TAU_MS 4000
+#define LPPS_BASE_TAU_SLOW_MS 60000
+#define LPPS_BASE_TRACK_MAX MAX(2 * CONFIG_SPLIT54TP_LPPS_DEAD_ZONE, 4)
+#define LPPS_BASE_DT_MAX_MS 250
+
+/* ★ 2026-11-15 整数の平方根 (切り捨て)。(2 回目) 256 倍の値の 2 乗の和を入れるので 64 ビットにした */
+static uint64_t lpps_isqrt(uint64_t v) {
+    uint64_t r = 0;
+    uint64_t bit = 1ULL << 62;
 
     while (bit > v) {
         bit >>= 2;
@@ -189,12 +216,31 @@ static uint32_t lpps_isqrt(uint32_t v) {
  */
 static bool lpps_filter(struct lpps_data *data, int8_t x, int8_t y, int32_t *ox, int32_t *oy) {
     const int32_t dz = CONFIG_SPLIT54TP_LPPS_DEAD_ZONE;
-    const int32_t ix = x;
-    const int32_t iy = y;
-    const int32_t m = (int32_t)lpps_isqrt((uint32_t)(ix * ix + iy * iy));
     const int64_t now = k_uptime_get();
 
-    if (m <= dz) {
+    /* ★ 2026-11-15 (2 回目) 基準 (止まっているときの 0 の位置) を引いた値で判断する。
+     *   基準は 65536 倍で持つ (256 倍だと、1 秒に 140 回読むときの 1 回分の寄せ幅が切り捨てで 0 になり、ゆっくりのほうが働かなかった) */
+    const int32_t rx = (int32_t)x * 65536 - data->base_x;
+    const int32_t ry = (int32_t)y * 65536 - data->base_y;
+    /* 力の大きさと引き算は 256 倍 (小数点以下 8 ビット) で計算する。整数に切り捨ててから計算すると、
+     * 基準が少し動いただけで値が 1 減り (9 → 8)、押し始めてすぐ 3 割遅くなった (手元の計算) */
+    const int32_t qx = rx / 256;
+    const int32_t qy = ry / 256;
+    const int32_t dz8 = dz * 256;
+    /* |qx|, |qy| ≤ 256 × 256 なので、2 乗の和は 64 ビットで */
+    const int32_t m8 = (int32_t)lpps_isqrt((uint64_t)((int64_t)qx * qx + (int64_t)qy * qy));
+
+    /* 基準からの力が小さいときだけ、基準を今の値へ寄せる (ゆっくりしたずれを追いかける) */
+    int32_t dt = (data->last_read_ms == 0) ? 0 : (int32_t)MIN(now - data->last_read_ms, LPPS_BASE_DT_MAX_MS);
+    data->last_read_ms = now;
+    if (m8 <= LPPS_BASE_TRACK_MAX * 256 && dt > 0) {
+        const int32_t tau = (m8 <= dz8) ? LPPS_BASE_TAU_MS : LPPS_BASE_TAU_SLOW_MS;
+        /* 寄せるのは基準からの力が 12 以下のときだけなので |rx| < 13 × 65536 ≈ 85 万。× 250 ms ≈ 2.1 億。int32 (21 億) に収まる */
+        data->base_x += rx * dt / tau;
+        data->base_y += ry * dt / tau;
+    }
+
+    if (m8 <= dz8) {
         data->streak = 0;
         data->rem_x = 0;
         data->rem_y = 0;
@@ -214,17 +260,17 @@ static bool lpps_filter(struct lpps_data *data, int8_t x, int8_t y, int32_t *ox,
         return false; /* 動き始め: まだ続いていない (1 回だけ跳ねた値かもしれない) */
     }
 
-    /* m ≤ 182、|x| ≤ 128 なので 128 × 182 × 256 ≈ 600 万。int32 に収まる */
-    const int32_t nx = ix * (m - dz) * 256 / m + data->rem_x;
-    const int32_t ny = iy * (m - dz) * 256 / m + data->rem_y;
-    const int32_t qx = nx / 256; /* 0 の方へ切り捨て。端数は符号つきで残す */
-    const int32_t qy = ny / 256;
+    /* 知らせる値 (256 倍) = (qx, qy) × (m − 引く量) / m。qx × (m8 − dz8) は最大 約 6.5 万 × 9.3 万なので 64 ビットで */
+    const int32_t nx = (int32_t)((int64_t)qx * (m8 - dz8) / m8) + data->rem_x;
+    const int32_t ny = (int32_t)((int64_t)qy * (m8 - dz8) / m8) + data->rem_y;
+    const int32_t outx = nx / 256; /* 0 の方へ切り捨て。端数は符号つきで残す */
+    const int32_t outy = ny / 256;
 
-    data->rem_x = nx - qx * 256;
-    data->rem_y = ny - qy * 256;
-    *ox = qx;
-    *oy = qy;
-    return qx != 0 || qy != 0;
+    data->rem_x = nx - outx * 256;
+    data->rem_y = ny - outy * 256;
+    *ox = outx;
+    *oy = outy;
+    return outx != 0 || outy != 0;
 }
 
 static void lpps_motion_work_handler(struct k_work *work) {
@@ -255,6 +301,14 @@ static void lpps_motion_work_handler(struct k_work *work) {
 #if IS_ENABLED(CONFIG_SPLIT54TP_TP_CALIB_LOCAL)
         split54tp_lpps_calib_written(ret); /* ★ 2026-11-14 校正のキーに結果を知らせる */
 #endif
+        if (ret >= 0) {
+            /* ★ 2026-11-15 (2 回目) LPPS の 0 が変わったので、合わせ直した基準と途中の数を捨てる */
+            data->base_x = 0;
+            data->base_y = 0;
+            data->rem_x = 0;
+            data->rem_y = 0;
+            data->streak = 0;
+        }
     }
 
     uint8_t transfer_bytes[3] = {0}; /* ★ 2026-11-14 0 で初期化 */

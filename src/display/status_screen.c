@@ -124,6 +124,11 @@ static const struct device *const tp_dev_r = DEVICE_DT_GET(DT_NODELABEL(tp_speed
 /* ★ 2026-11-11 スクロールの速さ (split54tp.dtsi の tp_scroll_speed)。段の番号を TP の行に出す */
 static const struct device *const tp_dev_s = DEVICE_DT_GET(DT_NODELABEL(tp_scroll_speed));
 #endif
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(enc_scroll_speed), okay)
+#define WHEEL_SPEED_SHOWN 1
+/* ★ 2026-11-15 ホイール (エンコーダ) のスクロールの速さ (split54tp.dtsi の enc_scroll_speed)。段の番号を TP の行に W で出す */
+static const struct device *const tp_dev_w = DEVICE_DT_GET(DT_NODELABEL(enc_scroll_speed));
+#endif
 #endif
 
 /* TP 復旧のキー (2026-11-11)。押した側で動き、結果をイベントで知らせる */
@@ -164,6 +169,7 @@ struct status_state {
     uint16_t tp_l; /* 0 = 不明 */
     uint16_t tp_r;
     uint8_t scroll; /* スクロールの速さの段 + 1 (1〜10。0 = 不明)。2026-11-11 */
+    uint8_t wheel;  /* ホイールの速さの段 + 1 (1〜9。0 = 不明)。2026-11-15 */
     char layer_name[OLEDSYNC_LAYER_NAME_LEN + 1];
     /* 自分の */
     uint8_t battery;
@@ -183,7 +189,7 @@ static bool shared_equal(const struct status_state *a, const struct status_state
            a->profile == b->profile && a->ble_connected == b->ble_connected &&
            a->ble_bonded == b->ble_bonded && a->mods == b->mods && a->caps == b->caps &&
            a->mac_style == b->mac_style && a->tp_l == b->tp_l && a->tp_r == b->tp_r &&
-           a->scroll == b->scroll;
+           a->scroll == b->scroll && a->wheel == b->wheel;
 }
 
 static bool state_equal(const struct status_state *a, const struct status_state *b) {
@@ -377,6 +383,9 @@ static struct status_state gather_state(const zmk_event_t *eh) {
 #if defined(SCROLL_SPEED_SHOWN)
     s.scroll = (uint8_t)(tp_speed_get_level(tp_dev_s) + 1);
 #endif
+#if defined(WHEEL_SPEED_SHOWN)
+    s.wheel = (uint8_t)(tp_speed_get_level(tp_dev_w) + 1);
+#endif
 #endif
 
 #if STATUS_SENDS_TO_PERIPHERAL
@@ -400,6 +409,7 @@ static struct status_state gather_state(const zmk_event_t *eh) {
         s.tp_l = remote.tp_l;
         s.tp_r = remote.tp_r;
         s.scroll = remote.scroll;
+        s.wheel = remote.wheel;
         memcpy(s.layer_name, remote.layer_name, sizeof(s.layer_name));
     }
     s.remote_valid = remote_valid;
@@ -587,17 +597,28 @@ static void render(const struct status_state *s) {
     }
 
     if (all || s->tp_l != shown.tp_l || s->tp_r != shown.tp_r || s->scroll != shown.scroll ||
-        s->fix_active != shown.fix_active ||
+        s->wheel != shown.wheel || s->fix_active != shown.fix_active ||
         strcmp(s->fix_text, shown.fix_text) != 0) {
         if (s->fix_active) {
             lv_label_set_text(tp_label, s->fix_text); /* TP 復旧のキーの結果 (10 秒) */
         } else if (s->tp_l == 0 || s->tp_r == 0) {
             lv_label_set_text(tp_label, "");
         } else {
-            /* ★ 2026-11-11 スクロールの段 (S1〜S10) を足したので、先頭の "TP " をやめた (16 文字に収める) */
-            if (s->scroll > 0) {
-                lv_label_set_text_fmt(tp_label, "L%u%% R%u%% S%u", (unsigned int)s->tp_l,
-                                      (unsigned int)s->tp_r, (unsigned int)s->scroll);
+            /* ★ 2026-11-11 スクロールの段 (S1〜S10) を足したので、先頭の "TP " をやめた (16 文字に収める)
+             * ★ 2026-11-15 ホイールの段 (W1〜W9) を足したので、% をやめた (いちばん長くて "L300 R300 S10 W9" = 16 文字) */
+            if (s->scroll > 0 || s->wheel > 0) {
+                char text[32];
+                int n = snprintf(text, sizeof(text), "L%u R%u", (unsigned int)s->tp_l,
+                                 (unsigned int)s->tp_r);
+
+                if (s->scroll > 0 && n >= 0 && n < (int)sizeof(text)) {
+                    n += snprintf(text + n, sizeof(text) - n, " S%u", (unsigned int)s->scroll);
+                }
+                if (s->wheel > 0 && n >= 0 && n < (int)sizeof(text)) {
+                    snprintf(text + n, sizeof(text) - n, " W%u", (unsigned int)s->wheel);
+                }
+                text[TP_LINE_CHARS] = '\0'; /* 16 文字を超えた分は出さない */
+                lv_label_set_text(tp_label, text);
             } else {
                 lv_label_set_text_fmt(tp_label, "TP L%3u%% R%3u%%", (unsigned int)s->tp_l,
                                       (unsigned int)s->tp_r);
@@ -665,7 +686,9 @@ static bool sync_send_state(const struct status_state *s) {
                   ((uint32_t)s->ble_connected << 6) | ((uint32_t)s->ble_bonded << 7) |
                   ((uint32_t)s->mods << 8) | ((uint32_t)s->caps << 16) |
                   ((uint32_t)s->mac_style << 17) | ((uint32_t)(s->scroll & 0xF) << 18);
-    uint32_t p2 = (uint32_t)s->tp_l | ((uint32_t)s->tp_r << 16);
+    /* ★ 2026-11-15 ホイールの段を足すため、TP の % を 12 bit ずつにした (いちばん大きい 300% も 4095 に収まる) */
+    uint32_t p2 = ((uint32_t)s->tp_l & 0xFFF) | (((uint32_t)s->tp_r & 0xFFF) << 12) |
+                  (((uint32_t)s->wheel & 0xF) << 24);
 
     return sync_send(p1, p2);
 }
@@ -797,8 +820,9 @@ void split54tp_status_apply_remote(uint32_t param1, uint32_t param2) {
         remote.caps = (param1 >> 16) & 0x1;
         remote.mac_style = (param1 >> 17) & 0x1;
         remote.scroll = (param1 >> 18) & 0xF;
-        remote.tp_l = param2 & 0xFFFF;
-        remote.tp_r = (param2 >> 16) & 0xFFFF;
+        remote.tp_l = param2 & 0xFFF;
+        remote.tp_r = (param2 >> 12) & 0xFFF;
+        remote.wheel = (param2 >> 24) & 0xF;
         remote_valid = true;
         break;
 

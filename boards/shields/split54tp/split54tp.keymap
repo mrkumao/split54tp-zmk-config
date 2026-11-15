@@ -416,6 +416,27 @@
             processor = <&tp_scroll_speed>;
             display-name = "Scroll Speed";
         };
+
+        /*
+         * ★ 2026-11-15 エンコーダ (ホイール) のスクロールの速さ (左右共通。ユーザー: 設定レイヤーで変えたい、今の値を OLED に出したい)
+         *   段は split54tp.dtsi の enc_scroll_speed (1 ノッチあたり 1/5〜4 目盛り、9 段、既定 1 = 今まで)。
+         *   設定レイヤーでホイールを回すと 1 段ずつ変わる (&enc_spd)。ホイールの押し込み = 既定に戻す。
+         *   向きは L1 の音量と同じ: 下へスクロールする向き (音量を上げる向き) = 速く。OLED の下の行の W の数字が段。
+         *   ホイールの回転はキーの配線を通らないので、回してもゴーストは立たない。
+         *   ホイールの押し込みに落ちるゴースト (配線表から計算): 左 1 + T・2 + F / 右 0 + Y・9 + J (既定に戻るだけ)。
+         *   ノード名は 8 文字以内にしておく (ほかの tps_* と同じ)。
+         */
+        tps_w: tps_w {
+            compatible = "zmk,behavior-tp-speed";
+            #binding-cells = <1>;
+            processor = <&enc_scroll_speed>;
+            display-name = "Wheel Speed";
+        };
+        enc_spd: enc_spd {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&tps_w TPS_UP>, <&tps_w TPS_DN>;
+        };
     };
 
     keymap {
@@ -513,6 +534,7 @@
          *   入る: 左 = L1 + Shift + Esc の位置 / 右 = L2 + Shift + - の位置 (&set_l / &set_r)
          *   出る: L1 / L2 / 左 Ctrl / Enter (&tog SETTINGS)。入ったままになるので、終わったら必ず出る。
          *   ほかのキーは &none。文字が打てなければ設定レイヤーにいる (OLED は "Set")。
+         *   ★ 2026-11-15 ホイール (左右とも): 回す = ホイールのスクロールの速さを 1 段ずつ (下へスクロールする向き = 速く)、押し込み = 既定に戻す (&enc_spd / &tps_w)。OLED の下の行の W の数字が段。
          *   片側だけでも使えるよう、左右に同じものを置いた (左のキー = 左に効く / 右のキー = 右に効く)。
          *     左: Q=USB へ W=BT へ E=USB と BT の切り替え R=BT 消去 / A=TP 校正 S=感度を既定に戻す D=感度を下げる F=感度を上げる G=TP 復旧 / X=書き換え C=スクロールを既定に
          *     右: P=USB へ O=BT へ I=USB と BT の切り替え U=BT 消去 / ;=TP 校正 L=感度を既定に戻す J=感度を下げる K=感度を上げる H=TP 復旧 / .=書き換え ,=スクロールを既定に
@@ -559,8 +581,10 @@
 &tog SETTINGS  &tpcalib       &tps_l TPS_DEF &tps_l TPS_DN  &tps_l TPS_UP  &tpfix           &tpfix         &tps_r TPS_DN  &tps_r TPS_UP  &tps_r TPS_DEF &tpcalib       &tog SETTINGS   // ★ 2026-11-11 (2 回目) TP の行: 左 A=TP 校正 S=感度戻す D=感度− F=感度＋ G=TP 復旧 / 右 H=TP 復旧 J=感度− K=感度＋ L=感度戻す ;=TP 校正。左 Ctrl / Enter の位置 = 設定レイヤーから出る
 &none          &none          &bootloader    &tps_s TPS_DEF &none          &none            &none          &none          &tps_s TPS_DEF &bootloader    &none          &none   // X / . = 書き換え / C / , = スクロールの速さを既定に (2026-11-11 (2 回目) G・H から)
                                              &tps_s TPS_DN  &tps_s TPS_UP  &tog SETTINGS    &tog SETTINGS  &tps_s TPS_DN  &tps_s TPS_UP   // L1 / L2 の位置 = 設定レイヤーから出る / 左右とも Alt と Space の位置 = スクロールを遅く・速く (2026-11-11)
-&none                                                                                                 &none   // ホイールのプッシュ
+&tps_w TPS_DEF                                                                                        &tps_w TPS_DEF   // ホイールのプッシュ = ホイールの速さを既定に (2026-11-15。前は &none)
             >;
+            /* ★ 2026-11-15 設定レイヤーではホイールを回すとホイールの速さが変わる (&enc_spd。前は下のレイヤーと同じ = スクロール) */
+            sensor-bindings = <&enc_spd &enc_spd>;
         };
 
         /*

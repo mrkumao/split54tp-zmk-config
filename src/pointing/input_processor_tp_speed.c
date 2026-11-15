@@ -13,6 +13,10 @@
  * ★ 2026-11-11 スクロールの速さ (tp_scroll_speed、ホイールを小さくする) にも使うため、割る数 divisor を足した
  *   (既定 100 = 今までどおりパーセント)。段の番号を読む tp_speed_get_level() も足した (OLED にスクロールの段を出す)。
  *
+ * ★ 2026-11-15 エンコーダのスクロールの速さ (split54tp.dtsi の enc_scroll_speed) にも使う。
+ *   reset-remainder-on-reverse があるときは、入力の向き (正負) が端数と逆になったら端数を捨てる
+ *   (1/5 などで下へ 3 ノッチ回したあと上へ回すと、端数 -600 を打ち消すまで上へ動かないため)。
+ *
  * ★ 2026-11-08 OLED に段を出すため、今の倍率を読む tp_speed_get_percent() と、
  *   段が変わったときのイベント split54tp_tp_speed_changed を足した (include/split54tp/tp_speed.h)。
  *   保存した段を起動時に読み込んだときもイベントを出す (画面が先にできていても正しい値に直るように)。
@@ -48,6 +52,7 @@ struct tp_speed_config {
     const uint16_t *levels;
     uint8_t default_level;
     uint16_t divisor;
+    bool reset_on_reverse;
 };
 
 struct tp_speed_data {
@@ -77,6 +82,10 @@ static int tp_speed_handle_event(const struct device *dev, struct input_event *e
         int32_t value = event->value * (int32_t)cfg->levels[data->level];
 
         if (state && state->remainder) {
+            if (cfg->reset_on_reverse &&
+                ((value > 0 && *state->remainder < 0) || (value < 0 && *state->remainder > 0))) {
+                *state->remainder = 0;
+            }
             value += *state->remainder;
         }
 
@@ -178,6 +187,7 @@ static struct zmk_input_processor_driver_api tp_speed_driver_api = {
         .levels = tp_speed_levels_##n,                                                             \
         .default_level = DT_INST_PROP(n, default_level),                                           \
         .divisor = DT_INST_PROP(n, divisor),                                                       \
+        .reset_on_reverse = DT_INST_PROP(n, reset_remainder_on_reverse),                           \
     };                                                                                             \
     static struct tp_speed_data tp_speed_data_##n = {                                              \
         .level = DT_INST_PROP(n, default_level),                                                   \

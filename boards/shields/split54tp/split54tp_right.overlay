@@ -163,6 +163,22 @@
 };
 
 /*
+ * ★ 2026-11-15 エンコーダ (ホイール) のスクロールの速さ (左右共通。split54tp.dtsi の enc_scroll_speed)
+ *   エンコーダのマクロ (キーマップの scroll_dn / scroll_up) が使う &msc の受け口 msc_input_listener に付ける。
+ *   msc_input_listener は ZMK の dts/behaviors/mouse_scroll.dtsi にあり、キーマップの #include <behaviors.dtsi> から入る。
+ *   ここではラベル (&msc_input_listener) ではなく同じ場所 (/msc_input_listener) のノードを書く
+ *   (devicetree は同じ場所のノードを 1 つにまとめるので、どちらが先に読まれても同じになる)。
+ *   右 (セントラル) だけに書く: tp-speed のドライバは右だけでコンパイルする (CMakeLists.txt) ので、
+ *   左右共通のキーマップに書くと、左のビルドで参照先がなくなる。
+ *   左のエンコーダの回転も右へ送られて右のキーマップで処理されるので、左右とも効く。
+ */
+/ {
+    msc_input_listener {
+        input-processors = <&enc_scroll_speed>;
+    };
+};
+
+/*
  * ★ 2026-10-25 rev.7: スティックの X / Y の向きは未確認。
  *   rev.7 は LPPS のコネクタを −Y 向きにした (rev.6 から 180° 回した、keyboard-project/docs/rev7-修正計画.md §3-1)。
  *   ただし rev.6 でも正しい向きは確かめられていない (センサの故障のため) ので、補正の値は実機で決める。

@@ -306,6 +306,30 @@ RC(2,1)                                             RC(2,8)
     };
 
     /*
+     * ★ 2026-11-15 エンコーダ (ホイール) のスクロールの速さ (左右共通。ユーザー: 設定レイヤーで変えたい、今の値を OLED に出したい)
+     *   右 overlay で ZMK の &msc の受け口 (msc_input_listener) に付ける。&msc を使うのはエンコーダのマクロ (scroll_dn / scroll_up) だけ。
+     *   今のエンコーダは 1 ノッチで 1 (ホスト側のホイール 1 目盛り)。マクロが &msc を 20ms 押し、ZMK が 16ms ごとに
+     *   80 × 16 / 1000 = 1.28 → 1 を送り、離すと端数を捨てる (ZMK 641514a の behavior_input_two_axis.c)。
+     *   levels は千分率 (divisor = 1000)。1 ノッチあたり 1/5・1/4・1/3・1/2・1 (= 今まで、段 5)・1.5・2・3・4 目盛り。
+     *   1 より小さい段は、数ノッチに 1 回だけ 1 目盛り送る (間のノッチでは動かない)。1.5 は 1 と 2 を交互に送る。
+     *   1/3 は 333 だと 3 ノッチで 999 < 1000 になり 4 ノッチに 1 回になるので 334。
+     *   reset-remainder-on-reverse: 回す向きを変えたら端数を捨てる (逆に回し始めたノッチが前の端数で消えないように)。
+     *   キーは設定レイヤーでホイールを回す (&enc_spd) / ホイールの押し込み = 既定 (キーマップ)。段は電源を切っても残る (settings の tp_speed/enc_scroll_speed)。
+     *   OLED の下の行の W の数字が段 (W1〜W9、既定 W5)。段を増やすときは 9 段まで (下の行が 16 文字に収まる数。src/display/status_screen.c)。
+     */
+    enc_scroll_speed: enc_scroll_speed {
+        compatible = "zmk,input-processor-tp-speed";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_REL>;
+        codes = <INPUT_REL_WHEEL>;
+        levels = <200 250 334 500 1000 1500 2000 3000 4000>;
+        divisor = <1000>;
+        default-level = <4>;
+        track-remainders;
+        reset-remainder-on-reverse;
+    };
+
+    /*
      * ★ 2026-11-09 OLED の表示を右から左へ送る受け口 (自作。src/behaviors/behavior_oled_sync.c)
      *   右 (セントラル) が接続先・レイヤー・修飾キー・Caps Lock・TP の感度を 2 つの数に詰めて、
      *   ZMK の「左で behavior を動かす」仕組み (zmk_split_central_invoke_behavior) で送る。

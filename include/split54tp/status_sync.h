@@ -5,7 +5,9 @@
  *   behavior の名前と 2 つの 32 bit の数 (param1 / param2) だけなので、表示の内容をそこに詰める。
  *   param1 の上 8 bit を種類 (OLEDSYNC_OP_*) に使う。
  *
- *   OLEDSYNC_OP_STATE: param1 = 下の表 / param2 = TP 左 % (下 16 bit) と TP 右 % (上 16 bit)
+ *   OLEDSYNC_OP_STATE: param1 = 下の表 / param2 = TP 左 % (bit 0〜11)、TP 右 % (bit 12〜23)、
+ *     ホイールの速さの段 + 1 (bit 24〜27。1〜9、0 = 不明)。★ 2026-11-15 (前は TP 左 % 下 16 bit / 右 % 上 16 bit)
+ *     ⚠ 左右で詰め方が違うと左の表示がおかしくなるので、変えたら左右とも書き込む
  *     bit 0〜1  出力先 (enum zmk_transport: 0 = なし、1 = USB、2 = BT)
  *     bit 2     出力先がつながっている
  *     bit 3〜5  BT のプロファイル番号 (0 から)

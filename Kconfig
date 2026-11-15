@@ -38,6 +38,14 @@ config SPLIT54TP_LPPS_START_READS
     range 1 20
     depends on SPLIT54TP_LPPS
 
+# ★ 2026-11-15 (3 回目) 速さの曲線の「平らな所」の幅 (力の大きさ)。引く量を超えて 1 までは 0 → 1、そこからこの幅の間は 1 回の読み取りで 1 のまま、
+#   その先は前と同じ傾き。弱い力の幅の中は同じ速さになり、指の力の揺れで急に速くならない (TrackPoint の "dead slow" の考え方)。0 = 平らな所なし (前と同じ)
+config SPLIT54TP_LPPS_PLATEAU
+    int "LPPS: width of the constant slow-speed plateau above the dead zone (0 = off)"
+    default 6
+    range 0 50
+    depends on SPLIT54TP_LPPS
+
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)
 # ★ 2026-11-14 depends on を LPPS → SPLIT54TP_LPPS に
 config SPLIT54TP_TP_CALIB_LOCAL

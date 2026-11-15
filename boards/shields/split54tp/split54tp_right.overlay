@@ -121,6 +121,14 @@
         input-processors = <&tp_drift_r &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
 
         /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール */
+        /* ★ 2026-11-15 ドラッグ: L1 / L2 のクリック (&dragclk) を押している間は DRAG レイヤー (6) が重なる。
+         *   ZMK は書いた順に調べて、最初に当てはまったものだけを使う (process-next なし) ので、tp_scroll より前に書く。
+         *   中身は上の input-processors (ふだんのカーソル) と同じ。番号はキーマップの #define DRAG と合わせること */
+        tp_drag {
+            layers = <6>;
+            input-processors = <&tp_drift_r &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
+        };
+
         tp_scroll {
             layers = <3 4>;
             input-processors = <&tp_drift_r &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
@@ -142,6 +150,12 @@
     input-processors = <&tp_drift_l &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
 
     /* ★ 2026-11-11 L1 (3) / L2 (4) の間は上下スクロール (右の lpps_listener と同じ) */
+    /* ★ 2026-11-15 ドラッグ (右の lpps_listener の tp_drag と同じ) */
+    tp_drag {
+        layers = <6>;
+        input-processors = <&tp_drift_l &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
+    };
+
     tp_scroll {
         layers = <3 4>;
         input-processors = <&tp_drift_l &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;

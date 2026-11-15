@@ -21,10 +21,21 @@ config SPLIT54TP_LPPS
 # ★ 2026-11-14 ドライバで、X / Y それぞれ絶対値からこの値を引く (この値以下は 0)。X も Y も 0 なら入力の知らせを出さない
 #   (ZMK の「操作」にも、Mac へのマウスの報告にもならない)。左右それぞれのビルドで、自分の LPPS に使う。
 #   既定 2 = 左。右は boards/shields/split54tp/split54tp_right.conf で 6 (2026-11-11 までの右の input processor の dead-zone と同じ)。
+# ★ 2026-11-15 引くのは X / Y 別々ではなく、力の大きさ (√(x² + y²)) から。向きはそのまま (円が四角になっていた)。
+#   既定 (= 左) を 2 → 6 に (触らずに 3 分で左は最大 31 / 8 の値が出て、Mac へ動きを送り続けた。右と同じ重さにそろえる)。
+#   keyboard-project/docs/rev7-修正計画.md 手順 208・209
 config SPLIT54TP_LPPS_DEAD_ZONE
-    int "LPPS: subtract this from |x| and |y|; do not report when both become 0"
-    default 2
+    int "LPPS: subtract this from the force length sqrt(x^2+y^2); do not report when it becomes 0"
+    default 6
     range 0 100
+    depends on SPLIT54TP_LPPS
+
+# ★ 2026-11-15 止まっている状態から動き始めるとき、引く量を超えた読み取りがこの回数続いてから知らせる (1 回だけ跳ねた値を捨てる)。
+#   1 = すぐ知らせる (前と同じ)。動かしている間の読み取りは 1 秒に約 140 回 (右の実測) なので、3 回で約 0.02 秒の遅れ
+config SPLIT54TP_LPPS_START_READS
+    int "LPPS: reads above the dead zone needed before reporting from rest"
+    default 3
+    range 1 20
     depends on SPLIT54TP_LPPS
 
 # 押した側の LPPS を校正する (左右どちらのビルドにも要る)

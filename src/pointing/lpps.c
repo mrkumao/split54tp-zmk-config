@@ -24,6 +24,17 @@
  *   3. 読み取りのたびに生の値を split54tp の口に渡す (引く前の値。OLED の V / Z / M と、TP 校正のドリフトの判定に使う)。
  *      校正 (レジスタ 0x04 への書き込み) のあとにも結果を渡す (校正のキーの OLED の表示に使う)。
  *   4. 読み取りの前に、受け取る配列を 0 にした (失敗したときのログに古い値が出ないように)。
+ *
+ * ★ 2026-11-15 変えた所 (keyboard-project/docs/rev7-修正計画.md 手順 209)
+ *   5. 差し引く形を「X / Y 別々」から「力の大きさ (X と Y を合わせた長さ)」に変えた。向きはそのまま。
+ *      ユーザー: 「円を描くように操作したのに四角になる」。X / Y 別々に引くと、横に近い向きでは縦の力が 0 になり
+ *      真横にだけ動く (縦も同じ) ので、円の上下左右が平らになっていた。
+ *      長さ m = √(x² + y²) から CONFIG_SPLIT54TP_LPPS_DEAD_ZONE を引き、x / y を (m − 引く量) / m 倍する。
+ *      割り算の端数は次の読み取りへ繰り越す (ゆっくり動かしたときに動きが消えないように。止まったら捨てる)。
+ *   6. 止まっている状態から動き始めるときは、引く量を超えた読み取りが CONFIG_SPLIT54TP_LPPS_START_READS 回
+ *      続いてから知らせる (1 回だけ跳ねた値を捨てる)。間が LPPS_START_GAP_MS より空いたら数え直す。
+ *      実測 (手順 208・209): 触らずに 3 分で左は最大 31 / 8 の値がときどき出て、Mac へ動きを送り続け、画面が消えなかった。
+ *      動かしている間の読み取りは 1 秒に約 140 回 (右、3 秒で 419 回) なので、3 回で約 0.02 秒の遅れ。
  */
 
 #include <stdint.h>
@@ -60,6 +71,11 @@ struct lpps_data {
     struct k_work_delayable irq_reenable_work;
     struct gpio_callback motion_cb;
     atomic_t behavior_calibration_pending;
+    /* ★ 2026-11-15 差し引く形と動き始めの判定 (ドライバの読み取りのスレッドだけが触る) */
+    int32_t rem_x;          /* 割り算の端数 (256 倍) */
+    int32_t rem_y;
+    uint8_t streak;         /* 引く量を超えた読み取りが続いた回数 */
+    int64_t last_above_ms;  /* 最後に引く量を超えた時刻 */
 };
 
 static int lpps_i2c_read_reg(const struct device *dev, uint8_t reg, uint8_t *data, uint8_t len) {
@@ -142,16 +158,73 @@ static bool lpps_is_ready(const struct device *dev) {
     return !gpio_pin_get_dt(&cfg->irq_gpio);
 }
 
-/* ★ 2026-11-14 差し引く: 絶対値から dead-zone を引く。dead-zone 以下は 0 (符号はそのまま) */
-static int8_t lpps_apply_dead_zone(int8_t v) {
-    const int32_t dz = CONFIG_SPLIT54TP_LPPS_DEAD_ZONE;
-    int32_t a = abs((int32_t)v);
+/* ★ 2026-11-15 動き始めの判定: 引く量を超えた読み取りの間がこれより空いたら、数え直す */
+#define LPPS_START_GAP_MS 200
 
-    if (a <= dz) {
-        return 0;
+/* ★ 2026-11-15 整数の平方根 (切り捨て)。v は最大 2 × 128² = 32768 */
+static uint32_t lpps_isqrt(uint32_t v) {
+    uint32_t r = 0;
+    uint32_t bit = 1UL << 30;
+
+    while (bit > v) {
+        bit >>= 2;
     }
-    a -= dz;
-    return (int8_t)((v < 0) ? -a : a);
+    while (bit != 0) {
+        if (v >= r + bit) {
+            v -= r + bit;
+            r = (r >> 1) + bit;
+        } else {
+            r >>= 1;
+        }
+        bit >>= 2;
+    }
+    return r;
+}
+
+/*
+ * ★ 2026-11-15 差し引く (力の大きさで) と、動き始めの判定。知らせる値があれば true を返し、*ox / *oy に入れる。
+ *   長さ m が引く量以下 → 0 (止まっている。端数と数を捨てる)。
+ *   止まっている状態からは、引く量を超えた読み取りが CONFIG_SPLIT54TP_LPPS_START_READS 回続くまで知らせない。
+ *   知らせる値 = (x, y) × (m − 引く量) / m。端数 (256 倍) は次へ繰り越す。
+ */
+static bool lpps_filter(struct lpps_data *data, int8_t x, int8_t y, int32_t *ox, int32_t *oy) {
+    const int32_t dz = CONFIG_SPLIT54TP_LPPS_DEAD_ZONE;
+    const int32_t ix = x;
+    const int32_t iy = y;
+    const int32_t m = (int32_t)lpps_isqrt((uint32_t)(ix * ix + iy * iy));
+    const int64_t now = k_uptime_get();
+
+    if (m <= dz) {
+        data->streak = 0;
+        data->rem_x = 0;
+        data->rem_y = 0;
+        return false;
+    }
+
+    if (data->streak > 0 && now - data->last_above_ms > LPPS_START_GAP_MS) {
+        data->streak = 0;
+        data->rem_x = 0;
+        data->rem_y = 0;
+    }
+    data->last_above_ms = now;
+    if (data->streak < UINT8_MAX) {
+        data->streak++;
+    }
+    if (data->streak < CONFIG_SPLIT54TP_LPPS_START_READS) {
+        return false; /* 動き始め: まだ続いていない (1 回だけ跳ねた値かもしれない) */
+    }
+
+    /* m ≤ 182、|x| ≤ 128 なので 128 × 182 × 256 ≈ 600 万。int32 に収まる */
+    const int32_t nx = ix * (m - dz) * 256 / m + data->rem_x;
+    const int32_t ny = iy * (m - dz) * 256 / m + data->rem_y;
+    const int32_t qx = nx / 256; /* 0 の方へ切り捨て。端数は符号つきで残す */
+    const int32_t qy = ny / 256;
+
+    data->rem_x = nx - qx * 256;
+    data->rem_y = ny - qy * 256;
+    *ox = qx;
+    *oy = qy;
+    return qx != 0 || qy != 0;
 }
 
 static void lpps_motion_work_handler(struct k_work *work) {
@@ -214,11 +287,12 @@ static void lpps_motion_work_handler(struct k_work *work) {
     split54tp_lpps_raw_calib(x, y);
 #endif
 
-    /* ★ 2026-11-14 差し引いて、X も Y も 0 なら知らせない (ZMK の「操作」にも、Mac へのマウスの報告にもならない) */
-    int8_t dx = lpps_apply_dead_zone(x);
-    int8_t dy = lpps_apply_dead_zone(y);
+    /* ★ 2026-11-14 差し引いて、X も Y も 0 なら知らせない (ZMK の「操作」にも、Mac へのマウスの報告にもならない)
+     * ★ 2026-11-15 力の大きさで引く・動き始めは続いてから (lpps_filter) */
+    int32_t dx = 0;
+    int32_t dy = 0;
 
-    if (dx != 0 || dy != 0) {
+    if (lpps_filter(data, x, y, &dx, &dy)) {
         input_report_rel(dev, INPUT_REL_X, dx, false, K_FOREVER);
         input_report_rel(dev, INPUT_REL_Y, dy, true, K_FOREVER);
     }

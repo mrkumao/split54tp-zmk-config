@@ -267,15 +267,20 @@ static void fix_store(const struct split54tp_tp_fix_done *f) {
      * ★ 2026-11-11 (3 回目) 先頭に V = 自分の側のスティックの動きの値の最大 (絶対値、生の値) を足した。
      *   触らずに置いた間に押せば、ドリフトの大きさが分かる (ドリフトを捨てる境目 open-threshold を決める材料)。
      *   16 文字に入らなければ S、I の順に省く。
+     * ★ 2026-11-18 (手順 232) V の次に R / A を足した (止まりかけを読み直した回数。src/pointing/lpps_rescue.c):
+     *   R = ドライバが「読み取りのあと MOTION が Low のまま」で読み直した / A = 自動の読み直し (2 秒) が Low のときに読んだ。
+     *   S (ホイール) は出さない (前から 16 文字に入らず、ほとんど省かれていた)。16 文字に入らなければ I、K の順に省く
+     *   ("V999 R999 A999" は 14 文字なので、R / A はいつも出る)。
      */
     char text2[40];
     unsigned int v = MIN(f->max_value, 999U);
+    unsigned int stuck = MIN(f->stuck_reads, 999U);
+    unsigned int low = MIN(f->keepalive_low, 999U); /* 1 行目の a (MOTION の後) と別の名前にする */
     unsigned int k = MIN(f->key_events, 999U);
-    unsigned int s = MIN(f->sensor_events, 999U);
     unsigned int in = MIN(f->input_events, 999U);
-    if (snprintf(text2, sizeof(text2), "V%u K%u S%u I%u", v, k, s, in) > TP_LINE_CHARS &&
-        snprintf(text2, sizeof(text2), "V%u K%u I%u", v, k, in) > TP_LINE_CHARS) {
-        snprintf(text2, sizeof(text2), "V%u K%u", v, k);
+    if (snprintf(text2, sizeof(text2), "V%u R%u A%u K%u I%u", v, stuck, low, k, in) > TP_LINE_CHARS &&
+        snprintf(text2, sizeof(text2), "V%u R%u A%u K%u", v, stuck, low, k) > TP_LINE_CHARS) {
+        snprintf(text2, sizeof(text2), "V%u R%u A%u", v, stuck, low);
     }
 
     k_mutex_lock(&fix_mutex, K_FOREVER);

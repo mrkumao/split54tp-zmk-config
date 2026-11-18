@@ -25,6 +25,9 @@ struct split54tp_tp_fix_done {
     uint32_t key_events;    /* キーを押した数 (今押した F / J も入る) */
     uint32_t sensor_events; /* ホイールの知らせ */
     uint32_t input_events;  /* 入力の知らせ (すべての入力の装置。右では左のスティックの分も入る) */
+    /* ★ 2026-11-18 前に押してから今までの、止まりかけを読み直した回数 (src/pointing/lpps_rescue.c、手順 232) */
+    uint32_t stuck_reads;   /* R: ドライバが「読み取りのあと MOTION が Low のまま」で読み直した */
+    uint32_t keepalive_low; /* A: 自動の読み直しが、MOTION が Low のときに読んだ */
 };
 
 /* 前に呼んでから今までの、キー / ホイール / 入力の知らせの数。呼ぶと 0 に戻す (src/display/activity_count.c) */

@@ -24,3 +24,9 @@ void split54tp_lpps_raw_calib(int8_t x, int8_t y);
 
 /* 校正を書いた結果 (0 = 成功、負 = エラー番号)。src/behaviors/behavior_tp_calib_local.c が受ける */
 void split54tp_lpps_calib_written(int ret);
+
+/*
+ * ★ 2026-11-18 読み取りのあと MOTION が Low のまま CONFIG_SPLIT54TP_LPPS_STUCK_MS たったので、もう一度読んだ。
+ * src/pointing/lpps_rescue.c (CONFIG_SPLIT54TP_LPPS_RESCUE) が数え、TP 復旧の表示の R に出す。手順 232
+ */
+void split54tp_lpps_stuck_read(void);

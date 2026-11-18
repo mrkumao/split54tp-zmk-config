@@ -29,6 +29,8 @@
  *   ★ 2026-11-14 (案 B) LPPS のドライバを取り込み (src/pointing/lpps.c)、差し引いて 0 になる読み取りは知らせないようにした。
  *     そのため数 (Z / M / V) は、入力の知らせではなく、ドライバから生の値で受ける (下の split54tp_lpps_raw_rescue)。
  *     読み直しても知らせが出ない見込みなので、共通 conf で置いている間の読み直し (WINDOW_MS = 0) を戻した (手順 205)。
+ *   ★ 2026-11-18 (手順 232) 止まりかけの数を 2 つ数え、TP 復旧の表示の R / A に出す: R = ドライバが「読み取りのあと
+ *     MOTION が Low のまま」で読み直した回数 (src/pointing/lpps.c)、A = 自動の読み直しが MOTION が Low のときに読んだ回数。
  *   https://github.com/sekigon-gonnoc/zmk-driver-lpps
  *   https://docs.zephyrproject.org/latest/services/input/index.html
  *   https://github.com/zmkfirmware/zmk/blob/main/app/src/activity.c
@@ -111,6 +113,19 @@ static void note_max(int32_t value) {
     } while (!atomic_cas(&max_value, cur, a));
 }
 
+/* ---------------------------------------------------------------- 止まりかけの数 (★ 2026-11-18、手順 232) */
+
+static atomic_t stuck_reads;   /* ドライバが「読み取りのあと MOTION が Low のまま」で読み直した回数 */
+static atomic_t keepalive_low; /* 自動の読み直しが、MOTION が Low のときに読んだ回数 */
+
+/* ドライバ (src/pointing/lpps.c) が呼ぶ */
+void split54tp_lpps_stuck_read(void) { atomic_inc(&stuck_reads); }
+
+void split54tp_lpps_take_stuck_counts(uint32_t *stuck, uint32_t *low) {
+    *stuck = (uint32_t)atomic_clear(&stuck_reads);
+    *low = (uint32_t)atomic_clear(&keepalive_low);
+}
+
 /* ---------------------------------------------------------------- 自動の読み直し */
 
 #if CONFIG_SPLIT54TP_LPPS_KEEPALIVE_MS > 0
@@ -160,6 +175,10 @@ static void keepalive_work_cb(struct k_work *work) {
     split54tp_lpps_reread(&r, false);
     LOG_DBG("LPPS keepalive: motion %d, read %d, close %d", r.motion_before, r.read_ret,
             r.close_ret);
+    /* ★ 2026-11-18 Low (「読んで」) なのにドライバが読んでいなかった = 止まっていたのを、この読み直しで戻した見込み */
+    if (r.motion_before == 0) {
+        atomic_inc(&keepalive_low);
+    }
 
     k_work_reschedule(&keepalive_work, K_MSEC(KEEPALIVE_MS));
 }

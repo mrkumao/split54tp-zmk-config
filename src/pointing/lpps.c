@@ -57,6 +57,12 @@
  *      TrackPoint の考え方 (IBM の Rutledge・Selker): 弱い力の広い幅を、一定のごく遅い速さに対応させる ("dead slow" の平らな所)。
  *      ここでは、引く量を超えて 1 までは 0 → 1、そこから平らな幅 6 の間は 1 (1 回の読み取りで 1 = 1 秒に約 140)、
  *      その先は前と同じ傾きで速くなる (前より平らな幅の分だけ遅い。強く押したときの速さは感度で上げられる)。
+ *
+ * ★ 2026-11-18 変えた所 (手順 232)
+ *   9. 読み取りのあと MOTION が CONFIG_SPLIT54TP_LPPS_STUCK_MS (既定 10) たっても Low のままなら、もう一度読む
+ *      (lpps_irq_reenable_work_handler)。上流は High に戻るまで割り込みを入れずに待つだけなので、
+ *      High の間を見逃すと、LPPS は読まれるのを、ドライバは High を待ち続けて止まる見込み (未確認)。
+ *      ユーザー: 「突然 TP カーソルが止まる (特に右)。TP 復旧でだいたい戻る」。そのときの表示は「L>H ok」。
  */
 
 #include <stdint.h>
@@ -102,6 +108,8 @@ struct lpps_data {
     int32_t base_x;
     int32_t base_y;
     int64_t last_read_ms;
+    /* ★ 2026-11-18 読み取りのあと、MOTION が High に戻るのを待ち始めた時刻 (lpps_interrupt_enable_when_inactive) */
+    int64_t wait_start_ms;
 };
 
 static int lpps_i2c_read_reg(const struct device *dev, uint8_t reg, uint8_t *data, uint8_t len) {
@@ -149,12 +157,31 @@ static bool lpps_irq_is_active(const struct device *dev) {
     return gpio_pin_get_dt(&cfg->irq_gpio) == 0;
 }
 
+/*
+ * ★ 2026-11-18 (手順 232) 読み取りのあと MOTION が High に戻るのを 1ms ごとに見て、戻ったら割り込みを入れる (上流と同じ)。
+ *   ただし CONFIG_SPLIT54TP_LPPS_STUCK_MS たっても Low のままなら、もう一度読む (上流は High になるまで待つだけ)。
+ *   止まった右で TP 復旧を押すと「L>H」(読む前は Low = LPPS が「読んで」と言っている、読んだら High) だった。
+ *   見込み (未確認): High の間を 1ms ごとの見回りが見逃し、LPPS が次の値で Low にすると、
+ *   ドライバは「High になるまで割り込みを入れない」、LPPS は「読まれるまで Low のまま」で、互いに待って止まる。
+ *   Low は「読んで」の合図なので、もう一度読むのは正しい動き (TP 復旧のキーが手で行っていたことと同じ)。
+ *   読んだ回数は OLED の TP 復旧の表示の R で分かる (src/pointing/lpps_rescue.c)。
+ */
 static void lpps_irq_reenable_work_handler(struct k_work *work) {
     struct k_work_delayable *dwork = k_work_delayable_from_work(work);
     struct lpps_data *data = CONTAINER_OF(dwork, struct lpps_data, irq_reenable_work);
     const struct device *dev = data->dev;
 
     if (lpps_irq_is_active(dev)) {
+#if CONFIG_SPLIT54TP_LPPS_STUCK_MS > 0
+        if (k_uptime_get() - data->wait_start_ms >= CONFIG_SPLIT54TP_LPPS_STUCK_MS) {
+#if IS_ENABLED(CONFIG_SPLIT54TP_LPPS_RESCUE)
+            split54tp_lpps_stuck_read();
+#endif
+            /* 割り込みは切ったまま。読み取りの最後で、また lpps_interrupt_enable_when_inactive に来る */
+            k_work_submit(&data->motion_work);
+            return;
+        }
+#endif
         k_work_reschedule(&data->irq_reenable_work, K_MSEC(1));
         return;
     }
@@ -166,6 +193,7 @@ static void lpps_interrupt_enable_when_inactive(struct lpps_data *data) {
     const struct device *dev = data->dev;
 
     if (lpps_irq_is_active(dev)) {
+        data->wait_start_ms = k_uptime_get(); /* ★ 2026-11-18 */
         k_work_reschedule(&data->irq_reenable_work, K_MSEC(1));
         return;
     }

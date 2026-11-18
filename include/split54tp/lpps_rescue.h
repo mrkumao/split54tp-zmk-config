@@ -29,3 +29,10 @@ void split54tp_lpps_reread(struct split54tp_lpps_reread_result *r, bool check_af
  * 動きの値の最大 (max_value = X / Y の絶対値。★ 2026-11-11 (3 回目) ドリフトの大きさの確認用)。呼ぶと 0 に戻す
  */
 void split54tp_lpps_take_counts(uint32_t *zero, uint32_t *move, uint32_t *max_value);
+
+/*
+ * ★ 2026-11-18 前に呼んでから今までの、止まりかけを読み直した回数。呼ぶと 0 に戻す (手順 232)
+ *   stuck = ドライバが「読み取りのあと MOTION が Low のまま」で読み直した回数 (src/pointing/lpps.c、CONFIG_SPLIT54TP_LPPS_STUCK_MS)
+ *   keepalive_low = 自動の読み直し (2 秒) が、MOTION が Low のときに読んだ回数 (= ドライバが合図を拾えていなかった見込み)
+ */
+void split54tp_lpps_take_stuck_counts(uint32_t *stuck, uint32_t *keepalive_low);

@@ -644,11 +644,16 @@
              *     L1 + 7 + 右ホイール押し → Y (左クリック)、L1 + 7 + M (F7) → U (右クリック) など。
              * ★ 2026-11-15 L1 / L2 のクリック (左・右・中) を &mkp → &dragclk に (ドラッグできるように)。押している間は DRAG レイヤーが
              *   重なり、スティックはスクロールではなくカーソルになる。ホイールのプッシュ (右クリック) は &mkp のまま。
+             * ★ 2026-11-18 (ユーザー指定) L1 の A の位置 (Home) → 左 Alt (矢印 S E D F と一緒に押す)。L1 の Home はなくなった (L2 / L3 の H にある)。
+             *   ~ と " を L1 / L2 の空きへ (ユーザー指定。位置は Claude が決めた): L1 = O が ~・P が " / L2 = W が ~・Q が " (左右対称 = 同じ指)。
+             *   ゴースト (配線表から計算): O・P・Q・W は、ほかのどのキーと 2 つ同時に押してもゴーストが立たず、ほかの 2 キーで立つこともない。
+             *   左 Alt (A) について: L1 + Alt + ← / ↓ / → / ↑ だけなら立たない。⚠ L1 + Alt + Shift + ← (S) と L1 + Alt + ← + ↓ は
+             *   3 の位置 ([) が立つ (Mac では Option+Shift+[ で ” が入る)。前からの L1 + Shift + PgUp (Q) → A の位置は、Home ではなく Alt になった。
              */
             bindings = <
 &set_l         &bt_1          &bt_2          &bt_3          &bt_4          &bt_5            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &kp PIPE   // 記号 (L1/L2共通)  ` - = [ ] \  |  ' _ + { } |   ★ 2026-11-04 Esc の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは `)。★ 2026-11-15 5 の位置 = Ctrl と一緒に押すと BT5 (Linux)。Ctrl なしは \ のまま
-&kp CAPS       &kp PG_UP      &trans         &kp UP         &dragclk RCLK  &dragclk LCLK    &dragclk LCLK  &dragclk RCLK  &dragclk MCLK  &trans         &trans         &kp DEL   // 左: Tab の位置=CapsLock Q=PgUp E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック。(3 回目) W の左クリックを削除 = Base と同じ)  /  右: Y=左クリック U=右クリック I=中クリック、BS の位置=DEL (2026-11-11 (2 回目) 左クリックを U から Y (F1 の上) へ、右クリックを O から U へ。O は Base と同じ)
-&trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=Home S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01。2026-11-15 から OS ごとの差分レイヤーで差し替え)
+&kp CAPS       &kp PG_UP      &trans         &kp UP         &dragclk RCLK  &dragclk LCLK    &dragclk LCLK  &dragclk RCLK  &dragclk MCLK  &kp TILDE      &kp DQT        &kp DEL   // ★ 2026-11-18 O=~ P=" (ユーザー指定「L1/L2 の空きに」)。左: Tab の位置=CapsLock Q=PgUp E=↑ R=右クリック T=左クリック (2026-11-11 T の PgUp を Q へ、T は左クリック。(3 回目) W の左クリックを削除 = Base と同じ)  /  右: Y=左クリック U=右クリック I=中クリック、BS の位置=DEL (2026-11-11 (2 回目) 左クリックを U から Y (F1 の上) へ、右クリックを O から U へ。O は Base と同じ)
+&trans         &kp LALT       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END          &kp F1         &kp F2         &kp F3         &kp F4         &kp F5         &kp PSCRN   // 左: A=左 Alt (2026-11-18、ユーザー指定。前は Home) S← D↓ F→ G=End  /  右: F1-F5、Enter の位置=PrtSc (2026-11-01。2026-11-15 から OS ごとの差分レイヤーで差し替え)
 &trans         &kp PG_DN      &trans         &trans         &trans         &studio_unlock   &kp F6         &kp F7         &kp F8         &kp F9         &kp F10        &trans   // 左: Z=PgDn (2026-11-11 B から Home の下へ) B=Studio解除 (2026-11-15、ユーザー指定。前は L2 + Tab の位置)  /  右: F6-F10 (2026-11-01)。X の書き換えは設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &trans         &trans           &kp F11        &kp F12        &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / L2 の位置=F11 右Space=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
@@ -661,8 +666,8 @@
             display-name = "L2";   // OLED の表示 (2026-11-01)
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &bt_5            &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r     // 記号 (L1と同一)。★ 2026-11-04 - の位置 = Shift と一緒に押すと設定レイヤーへ (Shift なしは |)。★ 2026-11-15 5 の位置 = Ctrl と一緒に押すと BT5
-&kp DEL        &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK      &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // 左: Tab の位置=Del (2026-11-15、ユーザー指定。前は Studio解除) E=中クリック R=右クリック T=左クリック (2026-11-11 (2 回目) 左クリックを W から T (F5 の上) へ。W は Base と同じ。L1 の右 Y U I と左右対称) / 右: Y=左クリック (2026-11-11 PgUp から) U=右クリック (2026-11-11 (2 回目) ← の上。O から) I=↑ P=PgUp (2026-11-11 Y から) BS の位置=Del (2026-11-15。前は Studio解除)。O は Base と同じ。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
-&trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=End Enter の位置=PrtSc (OS ごとの差分レイヤーで差し替え。2026-11-15)
+&kp CAPS       &kp DQT        &kp TILDE      &dragclk MCLK  &dragclk RCLK  &dragclk LCLK      &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // ★ 2026-11-18 (ユーザー指定) 左: Tab の位置=CapsLock (前は Del。Del は BS の位置に残る) Q=" W=~ (L1 の P / O と左右対称)。(前の記録) 左: Tab の位置=Del (2026-11-15、ユーザー指定。前は Studio解除) E=中クリック R=右クリック T=左クリック (2026-11-11 (2 回目) 左クリックを W から T (F5 の上) へ。W は Base と同じ。L1 の右 Y U I と左右対称) / 右: Y=左クリック (2026-11-11 PgUp から) U=右クリック (2026-11-11 (2 回目) ← の上。O から) I=↑ P=PgUp (2026-11-11 Y から) BS の位置=Del (2026-11-15。前は Studio解除)。O は Base と同じ。Q〜R の出力の切り替え・BT 消去は設定レイヤーへ移した (2026-11-04)
+&trans         &kp F1         &kp F2         &kp F3         &kp F4         &kp F5           &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp RALT       &kp PSCRN   // 左: F1-F5 (2026-11-01)  /  右: H=Home J← K↓ L→ ;=右 Alt (2026-11-18、ユーザー指定。前は End。L2 の End はなくなった = L1 の G / L3 の ; にある。ゴースト (計算): L2 + 右 Alt + 矢印 (+ 左 Shift) では立たない) Enter の位置=PrtSc (OS ごとの差分レイヤーで差し替え。2026-11-15)
 &trans         &kp F6         &kp F7         &kp F8         &kp F9         &kp F10          &studio_unlock &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 / 右: N=Studio解除 (2026-11-15、ユーザー指定) /=PgDn (2026-11-11 N から End の下へ)。. の書き換え・/ の TP 校正は設定レイヤーへ移した (2026-11-04)
                                                &kp LGUI       &kp F11        &kp F12          &trans         &trans         &kp RGUI   // thumb: 外側=GUI(Win/Cmd)。左=左GUI、右=右GUI / 左Space=F11 L1 の位置=F12 (2026-11-01)
 &mkp RCLK                                                                                             &mkp RCLK   // ホイールのプッシュ = 右クリック (2026-11-01)
@@ -674,6 +679,7 @@
         /*
          * ★ 2026-11-15 L3 (LAYER3 = 8、ユーザー指定)。Base の右 Shift の位置を押している間。
          *   中身は L2 のコピーから F1〜F12 を除いたもの (除いた所は &trans = Base と同じ)。
+         *   ★ 2026-11-18 L2 と違う所 (ユーザー指定): Tab の位置 = Tab (L2 は CapsLock)。L2 で変えた ; (右 Alt) と Q W (" ~) は L3 では変えていない (; = End のまま)。
          *   スティックは L1 / L2 と同じく上下スクロール (split54tp_right.overlay の tp_scroll)。
          *   - の位置は L2 と同じ &set_r: 左 Shift と一緒に押すと設定レイヤーへ。
          *   右手だけで入るときは L2 + L3 (右 Shift の位置) + - (下の setent_layer)。前の L2 + 右 Shift + - と同じ指の動き。
@@ -684,7 +690,7 @@
             display-name = "L3";
             bindings = <
 &kp GRAVE      &bt_1          &bt_2          &bt_3          &bt_4          &bt_5          &kp SQT        &kp UNDER      &kp PLUS       &kp LBRC       &kp RBRC       &set_r   // L2 と同じ
-&kp DEL        &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK  &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // L2 と同じ
+&kp TAB        &trans         &trans         &dragclk MCLK  &dragclk RCLK  &dragclk LCLK  &dragclk LCLK  &dragclk RCLK  &kp UP         &trans         &kp PG_UP      &kp DEL   // ★ 2026-11-18 (ユーザー指定) Tab の位置=Tab (前は Del)。L2 の Q W の " ~ は入れていない (ユーザー指定は L1 / L2)。ほかは L2 と同じ
 &trans         &trans         &trans         &trans         &trans         &trans         &kp HOME       &kp LEFT       &kp DOWN       &kp RIGHT      &kp END        &kp PSCRN   // 左: F1-F5 を除いた (Base と同じ) / 右: L2 と同じ
 &trans         &trans         &trans         &trans         &trans         &trans         &studio_unlock &trans         &trans         &trans         &kp PG_DN      &trans   // 左: F6-F10 を除いた / 右: L2 と同じ (N=Studio解除)。右 Shift の位置 = L3 を押しているキー
                                              &kp LGUI       &trans         &trans         &trans         &trans         &kp RGUI   // thumb: L2 の F11 (左Space) / F12 (L1 の位置) を除いた (Base と同じ)

@@ -213,36 +213,39 @@
          *   続けて別の番号へ切り替えるときは、CTRL を押し直す。
          *   CTRL は左 CTRL (BASE) と、Mac / iPad の左 Space 長押し (&ctl_spc LCTRL) の 2 つで、どちらも LCTRL。
          *   https://zmk.dev/docs/keymaps/behaviors/macros
+         * ★ 2026-11-21 Mac / iOS の L1 では Cmd + 1〜5 でも切り替える (下の btm_1〜btm_5、ユーザー指定)。
+         *   そのため LCTRL に加えて LGUI / RGUI も離してから切り替える (Cmd も元のホストで押したままに見えないように)。
+         *   押していない修飾キーを離しても、ZMK は何も送らない (app/src/hid.c が「押されていない」として報告を作らない)。
          */
         prof1_mac: prof1_mac {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 0 &to MAC>;
+            bindings = <&macro_release &kp LCTRL &kp LGUI &kp RGUI>, <&macro_tap &bt BT_SEL 0 &to MAC>;
         };
         prof2_win: prof2_win {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 1 &to WIN>;   // 2026-11-15 BASE → WIN
+            bindings = <&macro_release &kp LCTRL &kp LGUI &kp RGUI>, <&macro_tap &bt BT_SEL 1 &to WIN>;   // 2026-11-15 BASE → WIN
         };
         prof3_ios: prof3_ios {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 2 &to IOS>;
+            bindings = <&macro_release &kp LCTRL &kp LGUI &kp RGUI>, <&macro_tap &bt BT_SEL 2 &to IOS>;
         };
         prof4_android: prof4_android {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 3 &to ANDROID>;   // 2026-11-15 予備 (BASE) → Android
+            bindings = <&macro_release &kp LCTRL &kp LGUI &kp RGUI>, <&macro_tap &bt BT_SEL 3 &to ANDROID>;   // 2026-11-15 予備 (BASE) → Android
         };
         prof5_linux: prof5_linux {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <30>;
-            bindings = <&macro_release &kp LCTRL>, <&macro_tap &bt BT_SEL 4 &to LINUX>;   // 2026-11-15 追加
+            bindings = <&macro_release &kp LCTRL &kp LGUI &kp RGUI>, <&macro_tap &bt BT_SEL 4 &to LINUX>;   // 2026-11-15 追加
         };
 
         /*
@@ -336,9 +339,51 @@
         };
 
         /*
+         * ★ 2026-11-21 Mac / iOS の L1 だけ: Ctrl でも Cmd でも BT を切り替える (ユーザー指定)。
+         *   ユーザー: Mac / iOS から他の OS へ切り替えるとき、Ctrl は左 Space の長押しなので L1 と一緒に押すのが手間。
+         *   Mac / iOS では左 CTRL の位置が Cmd (LGUI) なので、L1 + Cmd + 1〜5 で切り替えられるようにした。
+         *   置くのは mac_l1_layer / ios_l1_layer の 1〜5 の位置だけ (L1 の bt_1〜bt_5 の上に重なる)。
+         *   ⚠ Mac / iOS の L1 では Cmd + - = [ ] \ (縮小・拡大・戻る・進むなど) は送れない。L2 / L3 + Cmd + 1〜5 では今までどおり送る
+         *     (ユーザーが「L1 だけ変える」を選んだ)。Windows / Android / Linux は今までどおり (Ctrl だけ)。
+         *   切り替えの中身は prof1_mac〜prof5_linux と同じ (LCTRL / LGUI / RGUI を離してから切り替える)。
+         *   https://zmk.dev/docs/keymaps/behaviors/mod-morph
+         */
+        btm_1: btm_1 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp MINUS>, <&prof1_mac>;
+            mods = <(MOD_LCTL|MOD_RCTL|MOD_LGUI|MOD_RGUI)>;
+        };
+        btm_2: btm_2 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp EQUAL>, <&prof2_win>;
+            mods = <(MOD_LCTL|MOD_RCTL|MOD_LGUI|MOD_RGUI)>;
+        };
+        btm_3: btm_3 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp LBKT>, <&prof3_ios>;
+            mods = <(MOD_LCTL|MOD_RCTL|MOD_LGUI|MOD_RGUI)>;
+        };
+        btm_4: btm_4 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp RBKT>, <&prof4_android>;
+            mods = <(MOD_LCTL|MOD_RCTL|MOD_LGUI|MOD_RGUI)>;
+        };
+        btm_5: btm_5 {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp BSLH>, <&prof5_linux>;
+            mods = <(MOD_LCTL|MOD_RCTL|MOD_LGUI|MOD_RGUI)>;
+        };
+
+        /*
          * ★ 2026-11-01 Mac / iPad の左 Space: 短く押すと Space、約 0.2 秒以上押すと CTRL
          *   Mac / iPad レイヤーは左 CTRL の位置が CMD になり CTRL が無くなるので、ここに置く。
          *   プロファイルの切り替えも、左 Space の長押し + L2 + 1〜4 でできる（L1 は同じ親指なので押せない）。
+         *   ★ 2026-11-21 Mac / iOS では L1 + Cmd (左 CTRL の位置) + 1〜5 でも切り替えられる (上の btm_1〜btm_5)。
          *   左 Space を先に押すこと。L2 を先に押すと L2 + 左 Space = F11 になる。
          *   tap-preferred: 判定は時間だけで決まる。他のキーを一緒に押しても CTRL に早変わりしない。
          *   quick-tap-ms: 短く押してすぐ押し直すと Space のまま（押し続ければ連続入力）。
@@ -746,7 +791,7 @@
         mac_l1_layer {
             display-name = "Mac L1";
             bindings = <
-&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &btm_1         &btm_2         &btm_3         &btm_4         &btm_5         &trans         &trans         &trans         &trans         &trans         &trans   // ★ 2026-11-21 1〜5 = Ctrl / Cmd + で BT1〜5 (btm_1〜btm_5)
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N5))   // Enter の位置 = PrtSc → Mac: Cmd+Shift+5 (撮り方を選ぶ画面)
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
@@ -782,7 +827,7 @@
         ios_l1_layer {
             display-name = "iOS L1";
             bindings = <
-&trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
+&trans         &btm_1         &btm_2         &btm_3         &btm_4         &btm_5         &trans         &trans         &trans         &trans         &trans         &trans   // ★ 2026-11-21 1〜5 = Ctrl / Cmd + で BT1〜5 (btm_1〜btm_5)
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &kp LG(LS(N4))   // Enter の位置 = PrtSc → iOS: Cmd+Shift+4 (撮ってすぐ書き込み)
 &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans         &trans

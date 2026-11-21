@@ -36,6 +36,14 @@
  *     Z / M = 前に押してから今までの LPPS の入力の通知の数 (Z = 値が 0、M = 動き。★ 2026-11-11 (2 回目) 追加。最初は先頭に "FIX " があった)。
  *     1 行 16 文字 (UNSCII 8 で 128 ドット) を超えないように切る。この表示は左へは送らない (押した側だけ)。
  *
+ *   ★ 2026-11-21 右の画面の「BT2 ✓ / Win」が、Mac (BT1) につなぎ直したあとも残った (keyboard-project/docs/rev7-修正計画.md 手順 244)。
+ *     右の中の状態は BT1 / Mac だった (右から送った内容で左は「BT1 ✓ Mac」、右のレイヤー名と Opt / Cmd は Mac に変わっていた。
+ *     キーを打つたびに状態は集め直すので、状態が古いまま残ったのではない)。
+ *     この画面は変わった所だけを書くので、その所の書き込みが OLED に届かなかったら、その所がまた変わるまで直らない
+ *     (届かなかった理由は不明。I2C は LPPS と同じ線。ログが無いので確かめていない)。
+ *     → 左右とも、FULL_REDRAW_MS ごとに全部の項目を出し直し、画面全体を書き直す (届かなかった分は 1 分以内に直る)。
+ *       画面が消えている間 (BLANK_ON_IDLE) は LVGL が書かないので、I2C は使わない (点いたときにまとめて書く)。
+ *
  *   作り方は ZMK 標準の画面 (app/src/display/status_screen.c と widgets/) と同じ:
  *   ZMK のイベントで状態を集め、表示の作業は表示専用のスレッド (zmk_display_work_q) で行う。
  *   https://github.com/zmkfirmware/zmk/tree/main/app/src/display
@@ -870,6 +878,30 @@ static void render_work_cb(struct k_work *work) {
 
 K_WORK_DEFINE(render_work, render_work_cb);
 
+/*
+ * ★ 2026-11-21 画面全体を FULL_REDRAW_MS ごとに書き直す (上の「★ 2026-11-21」)。
+ *   表示専用のスレッドで動く (render_work と同じスレッドなので、render と同時には走らない)。
+ *   1 回の量は 128 × 64 の 1 ビット = 1024 バイト (I2C 400kHz で約 25ms の見込み)。その間、LPPS の読み取りは待たされる。
+ */
+#define FULL_REDRAW_MS 60000
+static lv_obj_t *status_screen_obj;
+
+static void full_redraw_cb(struct k_work *work);
+K_WORK_DELAYABLE_DEFINE(full_redraw_work, full_redraw_cb);
+
+static void full_redraw_cb(struct k_work *work) {
+    if (screen_ready && status_screen_obj != NULL) {
+        status_refresh(NULL); /* 状態も今のものに (変わっていなければ何もしない) */
+        k_mutex_lock(&pending_mutex, K_FOREVER);
+        struct status_state s = pending;
+        k_mutex_unlock(&pending_mutex);
+        rendered_once = false; /* render がすべての項目を出し直す */
+        render(&s);
+        lv_obj_invalidate(status_screen_obj); /* 枠なども含めて、画面全体を書く */
+    }
+    k_work_reschedule_for_queue(zmk_display_work_q(), &full_redraw_work, K_MSEC(FULL_REDRAW_MS));
+}
+
 static void status_refresh(const zmk_event_t *eh) {
     if (!zmk_display_is_initialized()) {
         return;
@@ -1025,6 +1057,7 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_add_flag(diag_label, LV_OBJ_FLAG_HIDDEN);
 
     screen_ready = true;
+    status_screen_obj = screen; /* ★ 2026-11-21 */
 
     struct status_state s = gather_state(NULL);
     k_mutex_lock(&pending_mutex, K_FOREVER);
@@ -1032,6 +1065,9 @@ lv_obj_t *zmk_display_status_screen(void) {
     pending_valid = true;
     k_mutex_unlock(&pending_mutex);
     render(&s);
+
+    /* ★ 2026-11-21 画面全体の書き直しを始める (左右とも) */
+    k_work_reschedule_for_queue(zmk_display_work_q(), &full_redraw_work, K_MSEC(FULL_REDRAW_MS));
 
 #if STATUS_SENDS_TO_PERIPHERAL
     /* 起動のときは、左がもうつながっているかもしれないので送っておく */

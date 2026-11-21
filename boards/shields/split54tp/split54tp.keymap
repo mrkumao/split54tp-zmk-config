@@ -258,11 +258,12 @@
          */
         /*
          * ★ 2026-11-15 ドラッグできるクリック (ユーザー: 「左クリックし続けた状態で TP を触っても全く動かない」)。
-         *   L1 / L2 を押している間はスティックが上下スクロールになる (split54tp_right.overlay の tp_scroll) ので、
+         *   L1 / L2 を押している間はスティックがスクロールになる (split54tp_right.overlay の tp_scroll / tp_hscroll) ので、
          *   L1 / L2 のクリックを押したままスティックを倒しても、カーソルが動かなかった。
          *   押している間だけ DRAG レイヤーを重ねてクリックも押したままにし、離したら両方離す。
-         *   split54tp_right.overlay の tp_drag (DRAG のときはカーソル) を tp_scroll より前に書いてあるので、
-         *   ZMK は先に当てはまった tp_drag を使い、tp_scroll は使わない (app/src/pointing/input_listener.c)。
+         *   split54tp_right.overlay の tp_drag (DRAG のときはカーソル) を tp_scroll / tp_hscroll より前に書いてあるので、
+         *   ZMK は先に当てはまった tp_drag を使い、tp_scroll / tp_hscroll は使わない (app/src/pointing/input_listener.c)。
+         *   ★ 2026-11-21 スクロールは、押したキーと同じ側のスティック = 上下、反対側 = 左右 (tp_hscroll を追加。rev7-修正計画.md 手順 249)。
          *   使い方: &dragclk LCLK / RCLK / MCLK。https://zmk.dev/docs/keymaps/behaviors/macros
          */
         dragclk: dragclk {
@@ -678,7 +679,9 @@
              *   ゴースト (配線表から計算): L1 + 左 Shift + Q → A (Home) / L2 + 右 Shift + P → ; (End) が立つ。
              *     Shift + PgUp (範囲選択) は、反対側の Shift で押すこと (左右の間ではゴーストは立たない)。
              *   前からあるもの: L2 + 右 Shift + U (右クリック。2026-11-11 (2 回目) までは左クリック) → K (↓)、L1 + 左 Shift + R (右クリック) → D (↓)。
-             *   L1 / L2 を押している間、スティックは上下スクロールになる (split54tp_right.overlay の tp_scroll)。
+             *   L1 / L2 を押している間、押したキーと同じ側のスティックは上下、反対側は左右スクロールになる
+             *   (L1 = 左が上下・右が左右、L2 = 右が上下・左が左右。split54tp_right.overlay の tp_scroll / tp_hscroll)。
+             *   ★ 2026-11-21 前は左右とも上下スクロールだった (rev7-修正計画.md 手順 249)。
              * ★ 2026-11-11 (2 回目、ユーザー指定) クリックの並べ替え:
              *   L1 右: 左クリック U → Y (F1 の上)、右クリック O → U (もとの左クリックの場所)。O は Base と同じ (&trans)。
              *   L2 左: 左クリック W → T (F5 の上)。W は Base と同じ。/ L2 右: 右クリック O → U (← の上)。O は Base と同じ。
@@ -725,7 +728,8 @@
          * ★ 2026-11-15 L3 (LAYER3 = 8、ユーザー指定)。Base の右 Shift の位置を押している間。
          *   中身は L2 のコピーから F1〜F12 を除いたもの (除いた所は &trans = Base と同じ)。
          *   ★ 2026-11-18 L2 と違う所 (ユーザー指定): Tab の位置 = Tab (L2 は CapsLock)。L2 で変えた ; (右 Alt) と Q W (" ~) は L3 では変えていない (; = End のまま)。
-         *   スティックは L1 / L2 と同じく上下スクロール (split54tp_right.overlay の tp_scroll)。
+         *   スティックは L2 と同じく、右 = 上下スクロール、左 = 左右スクロール (split54tp_right.overlay の tp_scroll / tp_hscroll)。
+         *   ★ 2026-11-21 前は左右とも上下スクロールだった (rev7-修正計画.md 手順 249)。
          *   - の位置は L2 と同じ &set_r: 左 Shift と一緒に押すと設定レイヤーへ。
          *   右手だけで入るときは L2 + L3 (右 Shift の位置) + - (下の setent_layer)。前の L2 + 右 Shift + - と同じ指の動き。
          *   右 Shift はなくなったので、Shift は左 Shift だけ。
@@ -1016,7 +1020,7 @@
 
         /*
          * ★ 2026-11-15 ドラッグレイヤー (DRAG = 6。同じ日に OS のレイヤーを足して 26)。L1〜L3 のクリック (&dragclk) を押している間だけ重なる。
-         *   キーはすべて &trans (下のレイヤーと同じ)。このレイヤーがあるときは、スティックが上下スクロールではなく
+         *   キーはすべて &trans (下のレイヤーと同じ)。このレイヤーがあるときは、スティックがスクロール (★ 2026-11-21 上下 / 左右) ではなく
          *   カーソルになる (split54tp_right.overlay の tp_drag)。OLED のレイヤー名は "Drag" になる。
          */
         drag_layer {

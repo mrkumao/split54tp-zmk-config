@@ -59,6 +59,16 @@
  *   ★ 2026-11-11 最初は 1/8 固定 (&zip_y_scaler 1 8) で「爆速すぎ」(ユーザー) → 段で変えられる &tp_scroll_speed (既定 1/50) にした。
  *   L1 / L2 の間はカーソルが動かない (左右も捨てるので斜めに倒しても横スクロールしない)。感度 (tp_speed) は効かない。
  *   逆向きにしたいときは zip_scroll_transform を消す。
+ * ★ 2026-11-21 (ユーザー指定) 押しているレイヤーキーと同じ側のスティック = 上下、反対側のスティック = 左右スクロール。
+ *   L1 (6、左の親指) : 左のスティック = 上下 / 右のスティック = 左右
+ *   L2 (7、右の親指) : 右のスティック = 上下 / 左のスティック = 左右
+ *   L3 (8、右 Shift の位置) は L2 のコピーで右側のキーなので L2 と同じにした (ユーザーは L3 を指定していない。違う形にするときは layers の 8 を移す)。
+ *   左右: 左右 (X) をホイールの横 (HWHEEL) へ、上下 (Y) は捨てる (tp_hscroll_mapper) → 速さ (&tp_scroll_speed、上下と同じ段。
+ *         split54tp.dtsi の codes に HWHEEL を足した) → 向きを逆にする (&zip_scroll_transform X_INVERT)。
+ *   左右の向き: 生の X は右に倒すと負 (カーソルは X_INVERT で直している)。X_INVERT で「右に倒すと右へスクロール」(HWHEEL が正) にした。
+ *     上下の「上に倒すと上へスクロール」と同じ考え方。実機では未確認。逆なら tp_hscroll の X_INVERT の 1 つを消す (左右とも)。
+ *   L1 と L2 を両方押したとき: ZMK は書いた順に調べて最初に当てはまったものを使うので、上下 (tp_scroll) を先に書いた左右とも上下になる。
+ *   端数 (track-remainders) は ZMK が差し替えごと・処理ごと・WHEEL / HWHEEL ごとに分けて持つ (app/src/pointing/input_listener.c の apply_config)。
  */
 /*
  * ★ 2026-11-11 (3 回目) ドリフト止め (ユーザー: 「左右どちらかは不明だがドリフトがひどい。何度 TP 校正をしてもすぐ動き始める」)。
@@ -115,6 +125,14 @@
         map = <INPUT_REL_X INPUT_REL_MISC>, <INPUT_REL_Y INPUT_REL_WHEEL>;
     };
 
+    /* ★ 2026-11-21 左右 (X) だけをホイールの横 (HWHEEL) へ。上下 (Y) は INPUT_REL_MISC にして捨てる (反対側のスティックの左右スクロール) */
+    tp_hscroll_mapper: tp_hscroll_mapper {
+        compatible = "zmk,input-processor-code-mapper";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_REL>;
+        map = <INPUT_REL_X INPUT_REL_HWHEEL>, <INPUT_REL_Y INPUT_REL_MISC>;
+    };
+
     lpps_listener: lpps_listener {
         compatible = "zmk,input-listener";
         device = <&lpps>;
@@ -131,9 +149,15 @@
             input-processors = <&tp_drift_r &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_r>;
         };
 
+        /* ★ 2026-11-21 右のスティック: L2 / L3 = 上下、L1 = 左右 (上の説明) */
         tp_scroll {
-            layers = <6 7 8>;   /* ★ 2026-11-15 L1 / L2 = 3 / 4 → 6 / 7、L3 (8) を追加 (キーマップの LOWER / RAISE / LAYER3) */
+            layers = <7 8>;   /* ★ 2026-11-21 6 7 8 → 7 8 (L1 は下の tp_hscroll へ)。★ 2026-11-15 L1 / L2 = 3 / 4 → 6 / 7、L3 (8) を追加 (キーマップの LOWER / RAISE / LAYER3) */
             input-processors = <&tp_drift_r &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+        };
+
+        tp_hscroll {
+            layers = <6>;     /* ★ 2026-11-21 L1 (キーマップの LOWER) */
+            input-processors = <&tp_drift_r &tp_hscroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_X_INVERT)>;
         };
     };
 };
@@ -158,9 +182,15 @@
         input-processors = <&tp_drift_l &zip_xy_transform (INPUT_TRANSFORM_X_INVERT) &tp_speed_l>;
     };
 
+    /* ★ 2026-11-21 左のスティック: L1 = 上下、L2 / L3 = 左右 (右の lpps_listener と逆。上の説明) */
     tp_scroll {
-        layers = <6 7 8>;   /* ★ 2026-11-15 L1 / L2 / L3 (右の lpps_listener と同じ) */
+        layers = <6>;       /* ★ 2026-11-21 6 7 8 → 6 (L2 / L3 は下の tp_hscroll へ)。★ 2026-11-15 L1 / L2 / L3 */
         input-processors = <&tp_drift_l &tp_scroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+    };
+
+    tp_hscroll {
+        layers = <7 8>;     /* ★ 2026-11-21 L2 / L3 (キーマップの RAISE / LAYER3) */
+        input-processors = <&tp_drift_l &tp_hscroll_mapper &tp_scroll_speed &zip_scroll_transform (INPUT_TRANSFORM_X_INVERT)>;
     };
 };
 
